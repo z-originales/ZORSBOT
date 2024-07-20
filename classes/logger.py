@@ -54,7 +54,7 @@ class LoggerHandler(logging.Logger):
 
     def add_file_handlers(self, log_dir):
         error_file_handler = self.create_file_handler(f"{log_dir}/errors.log", logging.WARNING)
-        info_file_handler = self.create_file_handler(f"{log_dir}/info.log", logging.DEBUG, less_than=True)
+        info_file_handler = self.create_file_handler(f"{log_dir}/info.log", logging.WARNING, less_than=True)
         self.addHandler(error_file_handler)
         self.addHandler(info_file_handler)
 
