@@ -1,0 +1,11 @@
+services:
+  bot:
+    image: bot
+    build: .
+    container_name: bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+        - ./cogs:/app/cogs:ro
+        - ./logs:/app/logs

@@ -1,20 +1,17 @@
+from logger import LoggerHandler
 from time import sleep
-
-from logs import LoggerHandler
-
+from os import remove
 if __name__ == '__main__':
-    logger = LoggerHandler()
-    logger.info("info message")
-    logger.warning("warning message")
-    logger.error("error message")
-    logger.critical("critical message")
+    logger = LoggerHandler("discord", "logs")
 
-    logger.enable_debug_mode()
-    logger.debug("debug message")
-    logger.disable_debug_mode()
+    logger.info("This is an info message")
+    logger.warning("This is a warning message")
+    logger.error("This is an error message" + "\n\t" + 'a' * 10)
+    logger.critical("This is a critical message")
 
-    logger.enable_trace_mode()
+    logger.set_trace_level()
+
     while True:
-        logger.trace("trace message")
-        sleep(10)
-
+        logger.debug("This is a debug message")
+        logger.trace("This is a trace message" + "\n\t" + "5 minutes till next loop")
+        sleep(300)
