@@ -1,6 +1,6 @@
-from logger import LoggerHandler
+from classes.logger import LoggerHandler
 from time import sleep
-from os import remove
+
 if __name__ == '__main__':
     logger = LoggerHandler("discord", "logs")
 
