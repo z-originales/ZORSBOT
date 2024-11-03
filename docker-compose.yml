@@ -1,0 +1,23 @@
+services:
+  bot:
+    image: bot
+    build: .
+    container_name: bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+        - ./cogs:/app/cogs:ro
+        - ./logs:/app/logs
+        - ./assets:/app/assets
+  database:
+    image: postgres:16
+    container_name: database
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./database/data:/var/lib/postgresql/data
+      - ./init_scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
