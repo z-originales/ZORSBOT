@@ -1,9 +1,10 @@
 import logging
+from threading import Lock
 from logging.handlers import WatchedFileHandler
 from colorlog import ColoredFormatter
 
 
-class UnescapedFormatter(logging.Formatter):
+class _UnescapedFormatter(logging.Formatter):
 
     def __init__(self, fmt=None, datefmt=None, style='%'):
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
@@ -15,12 +16,14 @@ class UnescapedFormatter(logging.Formatter):
 
 class LoggerHandler(logging.Logger):
     _instance = None
+    _lock = Lock()  # Add a class-level lock to prevent multiple instances created by multiple threads
     TRACE = 5
     logging.addLevelName(TRACE, "TRACE")
 
     def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(LoggerHandler, cls).__new__(cls)
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(LoggerHandler, cls).__new__(cls)
         return cls._instance
 
     def __init__(self, name, log_dir, console_level=logging.INFO):
@@ -29,11 +32,11 @@ class LoggerHandler(logging.Logger):
             super().__init__(name)
             self.setLevel(console_level)
             self.datefmt = "[%d/%m/%Y %H:%M:%S]"
-            self.add_console_handler(console_level)
-            self.add_file_handlers(log_dir)
+            self._add_console_handler(console_level)
+            self._add_file_handlers(log_dir)
             self.is_initialized = True
 
-    def add_console_handler(self, console_level):
+    def _add_console_handler(self, console_level):
         console_handler = logging.StreamHandler()
         console_formatter = ColoredFormatter(
             "%(white)s%(asctime)s %(log_color)s%(levelname)-8s%(reset)s : %(white)s%(message)s",
@@ -52,15 +55,15 @@ class LoggerHandler(logging.Logger):
         console_handler.setLevel(console_level)
         self.addHandler(console_handler)
 
-    def add_file_handlers(self, log_dir):
-        error_file_handler = self.create_file_handler(f"{log_dir}/errors.log", logging.WARNING)
-        info_file_handler = self.create_file_handler(f"{log_dir}/info.log", logging.WARNING, less_than=True)
+    def _add_file_handlers(self, log_dir):
+        error_file_handler = self._create_file_handler(f"{log_dir}/errors.log", logging.WARNING)
+        info_file_handler = self._create_file_handler(f"{log_dir}/info.log", logging.WARNING, less_than=True)
         self.addHandler(error_file_handler)
         self.addHandler(info_file_handler)
 
-    def create_file_handler(self, file_path, level, less_than=False):
+    def _create_file_handler(self, file_path, level, less_than=False):
         file_handler = WatchedFileHandler(file_path)
-        formatter = UnescapedFormatter("%(asctime)s - %(levelname)s - %(message)s", datefmt=self.datefmt)
+        formatter = _UnescapedFormatter("%(asctime)s - %(levelname)s - %(message)s", datefmt=self.datefmt)
         file_handler.setFormatter(formatter)
         if less_than:
             file_handler.addFilter(lambda record: record.levelno < level)
