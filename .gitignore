@@ -44,6 +44,7 @@ poetry.lock
 
 # useless file to share (mostly some personal notes)
 logs/*.log
-color_memo.md
+_*.md
 .env*
+*.txt
 database/
