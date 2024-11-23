@@ -1,10 +1,7 @@
-from typing import Any
-
 import discord
 from discord.ext import commands
-
-from utilities import logger, utils
-
+from utils import logger, utils
+from loguru import logger as log
 
 class ZORS(commands.Bot):
 
@@ -52,10 +49,10 @@ class ZORS(commands.Bot):
 
 
 if __name__ == "__main__":
-    log = logger.LoggerHandler("discord", "logs")
-    log.set_trace_level()
+
     try:
         env_vars = utils.get_required_env_vars()
+        logger.setup_logger('logs' if not "LOGS_PATH" in env_vars else env_vars["LOGS_PATH"], "DEBUG")
     except EnvironmentError as e:
         log.critical(f"Failed to start the bot: {e}")
         exit(1)
