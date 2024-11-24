@@ -1,11 +1,12 @@
 import discord
 from discord.ext import commands
-from utils import logger, utils
+from utils import logger, utilities
+from utils.database import Database
 from loguru import logger as log
 
 class ZORS(commands.Bot):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, env_vars=None, *args, **kwargs):
         log.debug("ZORS bot is starting up...")
         super().__init__(*args, **kwargs)
         self.logger = log
@@ -47,15 +48,18 @@ class ZORS(commands.Bot):
                 case _:
                     log.error(f"Unknown error: {extension} - {status[extension]}")
 
-
-if __name__ == "__main__":
+@log.catch(level="CRITICAL", message="Unexpected error occurred, that forced the bot to shut down.")
+def main() -> None:
 
     try:
-        env_vars = utils.get_required_env_vars()
+        env_vars = utilities.get_required_env_vars()
         logger.setup_logger('logs' if not "LOGS_PATH" in env_vars else env_vars["LOGS_PATH"], "DEBUG")
     except EnvironmentError as e:
         log.critical(f"Failed to start the bot: {e}")
         exit(1)
+
+    log.debug("Connecting to the database...")
+    Database().connect()
 
     zorsintents = discord.Intents.none()
     zorsintents.members = True
@@ -77,3 +81,6 @@ if __name__ == "__main__":
         help_command=None
     )
     zors.run(env_vars["DISCORD_TOKEN"])
+
+if __name__ == "__main__":
+    main()
