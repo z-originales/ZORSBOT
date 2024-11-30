@@ -1,4 +1,4 @@
-name: Generate Docker image and check for vulnerabilities when new version of the bot is pushed to main
+name: Generate Docker image when new version of the bot is pushed to main
 
 on:
   push:
@@ -6,21 +6,14 @@ on:
       - v[0-9]+.[0-9]+.?[0-9]*
 
 jobs:
-
-  export-requirements-txt:
+  build-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: divideprojects/poetry-export-requirements-action@v1
         with:
           without-hashes: true
           outfile-name: requirements.txt
-
-  build-image:
-    runs-on: ubuntu-latest
-    needs:
-      - export-requirements-txt
-    steps:
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
