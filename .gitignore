@@ -37,7 +37,6 @@
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,visualstudiocode
 
-
 # useless file to share (mostly some personal notes)
 logs/*.log
 _*.md
