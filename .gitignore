@@ -37,10 +37,6 @@
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,visualstudiocode
 
-### Poetry ###
-# lock file
-poetry.lock
-
 
 # useless file to share (mostly some personal notes)
 logs/*.log
