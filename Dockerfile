@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN apt update && apt install libssl-dev -y
 
-RUN useradd -r -d /app -s /bin/false bot && chown -R bot:bot /app
+RUN useradd -u 10000 -g 10000 -r -d /app -s /bin/false bot && chown -R bot:bot /app
 
 USER bot
 
@@ -14,6 +14,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -Ur requirements.txt
 
+RUN mkdir assets
 COPY assets/ assets/
 RUN mkdir cogs
 COPY cogs/ cogs/
