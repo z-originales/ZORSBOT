@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN apt update && apt install libssl-dev -y
 
-RUN useradd -u 10000 -g 10000 -r -d /app -s /bin/false bot && chown -R bot:bot /app
+RUN groupadd -g 10000 bot && useradd -u 10000 -g 10000 -r -d /app -s /bin/false bot && chown -R bot:bot /app
 
 USER bot
 
