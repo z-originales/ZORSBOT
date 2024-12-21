@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -Ur requirements.txt
 
 COPY assets/ assets/
 RUN mkdir cogs
+COPY cogs/ cogs/
 RUN mkdir logs
 COPY prisma/ prisma/
 COPY utils/ utils/
