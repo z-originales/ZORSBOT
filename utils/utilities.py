@@ -13,7 +13,6 @@ def get_required_env_vars() -> dict:
     """
     required_env_vars = [
         "DISCORD_TOKEN",
-        "VERSION"
     ]
 
     env_vars_values = {}
