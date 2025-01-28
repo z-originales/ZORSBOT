@@ -10,10 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: divideprojects/poetry-export-requirements-action@v1
-        with:
-          without-hashes: true
-          outfile-name: requirements.txt
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -37,6 +33,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          target: app
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
