@@ -1,7 +1,7 @@
 services:
   discord-bot:
-    build: .
-    container_name: ZORSBOT
+    image: ghcr.io/lolozendev/zorsbot:latest
+    container_name: ZORSBot
     env_file:
       - .env
     volumes:
