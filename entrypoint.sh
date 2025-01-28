@@ -25,7 +25,11 @@ checkup_routine() {
 
   if [ -z "$(ls -A "$destinationfolder")" ]; then
     echo "$destinationfolder is empty, copying from backup"
-    cp -r "$signaturefolder"/* "$destinationfolder"
+    if [ -n "$(ls -A "$signaturefolder")" ]; then
+      cp -r "$signaturefolder"/* "$destinationfolder"
+    else
+      echo "$signaturefolder is empty, nothing to copy"
+    fi
   else
     echo "$destinationfolder folder is not empty, checking content"
     missing_files=$(check_folder_content "$signaturefolder" "$destinationfolder")
