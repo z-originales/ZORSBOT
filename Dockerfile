@@ -15,7 +15,7 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_CACHE_DIR='/tmp/poetry_cache'
 
 # Install the dependencies
-RUN poetry install --no-root && rm -rf /tmp/poetry_cache
+RUN poetry install --without dev --no-root && rm -rf /tmp/poetry_cache
 
 # APP stage
 FROM python:3.13-slim-bookworm AS app

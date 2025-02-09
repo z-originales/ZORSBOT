@@ -1,6 +1,5 @@
 from os import getenv
 import requests
-import json
 
 
 def get_required_env_vars() -> dict:

@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-py"
-  interface = "sync"
+  interface = "asyncio"
   recursive_type_depth = 5
 }
 
@@ -10,7 +10,22 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
+  id    Int     @id
   email String  @unique
   name  String?
+  color String?
+  habitue bool @default(false)
+}
+
+model Server {
+  id    Int     @id
+  name  String  @unique
+  users User[]
+}
+
+model Channel {
+  id      Int     @id
+  name    String  @unique
+  server  Server
+  serverId Int
 }
