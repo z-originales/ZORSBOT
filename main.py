@@ -1,19 +1,35 @@
 import discord
 from discord.ext import commands
 from utils import logger, utilities
-from utils.database import Database
 from loguru import logger as log
+from prisma import Prisma
 
 class ZORS(commands.Bot):
 
     def __init__(self, env_vars=None, *args, **kwargs):
         log.debug("ZORS bot is starting up...")
         super().__init__(*args, **kwargs)
-        self.logger = log
         self.envs = env_vars
+        self.database = Prisma()
+        self.database.connect()
+        log.info("Succesfully connected to the database")
         log.trace("ZORS bot has been initialized.")
+        log.info("ZORS bot is ready to go.")
         log.debug("Loading cogs...")
         self._load_cogs()
+
+    async def check_for_new_users(self)->bool:
+        """
+        Checks for new users in the guild and adds them to the database if they are not already in it.
+        :return: bool - True if new users were added, False if no new users were added.
+        """
+        new_users = False
+        for guild in self.guilds:
+            for member in guild.members:
+                if not self.database.client.get_user(member.id):
+                    new_users = True
+                    await self.database.client.create_user(member.id, member.name)
+        return new_users
 
     async def on_ready(self):
         """
@@ -23,6 +39,9 @@ class ZORS(commands.Bot):
         """
         log.debug("ZORS bot is up and ready.")
         log.trace(f"Logged in as {self.user} ({self.user.id})")
+        log.debug("Checking for new users...")
+        if await self.check_for_new_users():
+            log.info("Added new users to the database.")
 
     def _load_cogs(self) -> None:
         """
@@ -53,13 +72,10 @@ def main() -> None:
 
     try:
         env_vars = utilities.get_required_env_vars()
-        logger.setup_logger('logs' if not "LOGS_PATH" in env_vars else env_vars["LOGS_PATH"], "DEBUG")
+        logger.setup_logger('logs' if "LOGS_PATH" not in env_vars else env_vars["LOGS_PATH"], "DEBUG")
     except EnvironmentError as e:
         log.critical(f"Failed to start the bot: {e}")
         exit(1)
-
-    log.debug("Connecting to the database...")
-    Database().connect()
 
     zorsintents = discord.Intents.none()
     zorsintents.members = True
