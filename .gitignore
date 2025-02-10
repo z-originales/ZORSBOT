@@ -43,3 +43,4 @@ _*.md
 .env*
 *.txt
 database/
+runningbot/
