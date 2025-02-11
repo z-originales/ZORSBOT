@@ -16,6 +16,8 @@ prisma = "^0.15.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.4"
+prisma = "^0.15.0"
+
 
 [build-system]
 requires = ["poetry-core"]
