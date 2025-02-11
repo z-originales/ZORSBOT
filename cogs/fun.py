@@ -1,4 +1,6 @@
 from discord.ext import commands
+from main import ZORS
+
 
 class Fun(commands.Cog):
     def __init__(self, bot):
@@ -9,5 +11,5 @@ class Fun(commands.Cog):
         await ctx.respond(f"Pong! thanks for checking on me {ctx.author.mention} !")
 
 
-def setup(bot):
+def setup(bot: ZORS):
     bot.add_cog(Fun(bot))
