@@ -23,7 +23,9 @@ def get_required_env_vars() -> dict:
             missing_vars.append(var)
         env_vars_values[var] = value
     if missing_vars:
-        raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
+        raise EnvironmentError(
+            f"Missing required environment variables: {', '.join(missing_vars)}"
+        )
 
     return env_vars_values
 
@@ -41,4 +43,3 @@ def get_color_name(colorhex: str) -> str:
     api_url = f"https://www.thecolorapi.com/id?hex={colorhex[1:]}&format=json"
     response_json = requests.get(api_url).json()
     return response_json["name"]["value"]
-
