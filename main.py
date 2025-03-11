@@ -1,47 +1,71 @@
+import traceback
+
+from typing import Self
+
 import discord
 from discord.ext import commands
-from utils import logger, utilities
+from typing_extensions import override
+
+from utils import logger
 from loguru import logger as log
-from prisma import Prisma
+from asyncio import run
+from config.settings import settings
+from model.database import Database
 
 class ZORS(commands.Bot):
+    database: Database
+    main_guild: discord.Guild | None
 
-    def __init__(self, env_vars=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         log.debug("ZORS bot is starting up...")
         super().__init__(*args, **kwargs)
-        self.envs = env_vars
-        self.database = Prisma()
-        self.database.connect()
-        log.info("Succesfully connected to the database")
+        self.database: Database = Database(str(settings.postgres_url))
+        self.main_guild = None
+        log.info("Successfully connected to the database")
         log.trace("ZORS bot has been initialized.")
-        log.info("ZORS bot is ready to go.")
-        log.debug("Loading cogs...")
+        log.info("Loading cogs...")
         self._load_cogs()
 
-    async def check_for_new_users(self)->bool:
+    @classmethod
+    async def create_bot(cls) -> Self:
         """
-        Checks for new users in the guild and adds them to the database if they are not already in it.
-        :return: bool - True if new users were added, False if no new users were added.
+        Creates an instance of the bot.
+        Returns: ZORS - Instance of the bot.
         """
-        new_users = False
-        for guild in self.guilds:
-            for member in guild.members:
-                if not self.database.client.get_user(member.id):
-                    new_users = True
-                    await self.database.client.create_user(member.id, member.name)
-        return new_users
+        zorsintents = discord.Intents.none()
+        zorsintents.members = True
+        zorsintents.guilds = True
+        zorsintents.guild_messages = True
+        zorsintents.bans = True
+        zorsintents.emojis_and_stickers = True
+        zorsintents.webhooks = True
+        zorsintents.messages = True
+        zorsintents.message_content = True
+        zorsintents.reactions = True
+        zorsintents.auto_moderation_configuration = True
+        zorsintents.auto_moderation_execution = True
 
-    async def on_ready(self):
+        bot = ZORS(
+            description="ZORS !",
+            activity=discord.Game(name="/ping for now"),
+            intents=zorsintents,
+            help_command=None,
+        )
+        await bot.database.create_db_and_tables()
+        return bot
+
+    @override
+    async def start(self, *args, **kwargs) -> None:
         """
-        Event that is called when the bot is ready.
+        Starts the bot with the token from the settings.
         Returns:
 
         """
-        log.debug("ZORS bot is up and ready.")
-        log.trace(f"Logged in as {self.user} ({self.user.id})")
-        log.debug("Checking for new users...")
-        if await self.check_for_new_users():
-            log.info("Added new users to the database.")
+        await super().start(settings.discord_token, *args, **kwargs)
+
+
+
+
 
     def _load_cogs(self) -> None:
         """
@@ -61,42 +85,23 @@ class ZORS(commands.Bot):
                 case discord.ExtensionNotFound:
                     log.error(f"Failed to load cog: {extension} - {status[extension]}")
                 case discord.NoEntryPointError:
-                    log.error(f"Cog has no setup function: {extension} - {status[extension]}")
+                    log.error(
+                        f"Cog has no setup function: {extension} - {status[extension]}"
+                    )
                 case discord.ExtensionFailed:
                     log.error(f"Cog failed to load: {extension} - {status[extension]}")
                 case _:
                     log.error(f"Unknown error: {extension} - {status[extension]}")
+                    print(traceback.format_exc())
 
-@log.catch(level="CRITICAL", message="Unexpected error occurred, that forced the bot to shut down.")
-def main() -> None:
-
-    try:
-        env_vars = utilities.get_required_env_vars()
-        logger.setup_logger('logs' if "LOGS_PATH" not in env_vars else env_vars["LOGS_PATH"], "DEBUG")
-    except EnvironmentError as e:
-        log.critical(f"Failed to start the bot: {e}")
-        exit(1)
-
-    zorsintents = discord.Intents.none()
-    zorsintents.members = True
-    zorsintents.guilds = True
-    zorsintents.guild_messages = True
-    zorsintents.bans = True
-    zorsintents.emojis_and_stickers = True
-    zorsintents.webhooks = True
-    zorsintents.messages = True
-    zorsintents.message_content = True
-    zorsintents.reactions = True
-    zorsintents.auto_moderation_configuration = True
-    zorsintents.auto_moderation_execution = True
-
-    zors = ZORS(
-        description="ZORS !",
-        activity=discord.Game(name="/ping for now"),
-        intents=zorsintents,
-        help_command=None
-    )
-    zors.run(env_vars["DISCORD_TOKEN"])
+@log.catch(
+    level="CRITICAL",
+    message="Unexpected error occurred, that forced the bot to shut down.",
+)
+async def main():
+    logger.setup_logger('logs' if not settings.logs_path else settings.logs_path, 'INFO' if not settings.log_level else settings.log_level)
+    zors_bot = await ZORS.create_bot()
+    await zors_bot.start()
 
 if __name__ == "__main__":
-    main()
+    run(main())

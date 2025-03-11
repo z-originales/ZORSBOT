@@ -1,22 +1,29 @@
-[tool.poetry]
+[project]
 name = "zorsbot"
 version = "0.1.0"
 description = "A discord bot for 'la bande s4' server"
-authors = ["ZEN"]
-readme = "README.md"
-package-mode = false
+authors = [{ name = "ZEN" }, { name = "Anemys" }]
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.30.0",
+    "audioop-lts>=0.2.1",
+    "httpx>=0.28.1",
+    "loguru>=0.7.2",
+    "py-cord>=2.6.1",
+    "pydantic-settings>=2.7.1",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.3",
+    "sqlmodel>=0.0.22",
+]
 
-[tool.poetry.dependencies]
-python = "^3.13"
-py-cord = "^2.6.1"
-requests = "^2.32.3"
-loguru = "^0.7.2"
-audioop-lts = "^0.2.1"
-prisma = "^0.15.0"
-
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.9.4"
+[dependency-groups]
+dev = [
+    "ruff>=0.9.4",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages]
+find = { }

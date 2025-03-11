@@ -1,30 +1,25 @@
 # BUILDER stage
-FROM python:3.13-slim-bookworm AS builder
+FROM ghcr.io/astral-sh/uv:python3.13-alpine AS builder
 LABEL authors="ZEN"
 WORKDIR /app
 
-# Install Poetry
-RUN pip install poetry
+# Copy only the necessary files for UV to install dependencies
+COPY pyproject.toml uv.lock ./
 
-# Copy only the necessary files for Poetry to install dependencies
-COPY pyproject.toml poetry.lock ./
-
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1\
-    POETRY_VIRTUALENVS_CREATE=1\
-    POETRY_CACHE_DIR='/tmp/poetry_cache'
-
-# Install the dependencies
-RUN poetry install --without dev --no-root && rm -rf /tmp/poetry_cache
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-cache --no-dev --compile-bytecode --no-install-project
 
 # APP stage
-FROM python:3.13-slim-bookworm AS app
+FROM python:3.13-alpine AS app
 LABEL authors="ZEN"
 WORKDIR /app
 
 RUN mkdir -p /backups
 
-RUN apt update && apt install libssl-dev -y
+# Install the necessary system packages, need to find a way to not use bash in alpine image (for faster startup)
+RUN apk update && apk add --no-cache --upgrade openssl-dev bash
 
 # Copy the virtual environment from the builder stage
 COPY --from=builder /app/.venv /app/.venv
@@ -48,7 +43,8 @@ COPY assets/ /backups/assets
 RUN mkdir logs
 
 ## application files
-COPY prisma/ prisma/
+COPY config/ config/
+COPY model/ model/
 COPY utils/ utils/
 COPY main.py main.py
 
@@ -57,8 +53,6 @@ VOLUME /app/cogs
 VOLUME /app/logs
 VOLUME /app/assets
 
-# Generate Prisma client , Generating it here to avoid generating it in every container and make the run faster
-RUN prisma generate
 
 # Copy the entrypoint script
 COPY entrypoint.sh entrypoint.sh
