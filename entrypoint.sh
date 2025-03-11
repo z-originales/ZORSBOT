@@ -63,9 +63,15 @@ assets_folder="$APPLICATION_FOLDER/assets"
 checkup_routine "$backup_folder/cogs" "$cogs_folder"
 checkup_routine "$backup_folder/assets" "$assets_folder"
 
+# Wait for PostgreSQL to be ready
+dots=""
+while ! nc -z "${POSTGRES_HOST}" 5432; do
+  dots+="."
+  echo -ne "Waiting for PostgreSQL to be ready$dots\r"
+  sleep 2
+done
 
-# push the database in the entrypoint so the prisma file has access to the env variables
-prisma db push
+echo "PostgreSQL is ready!"
 
 # Run the application
 exec python3 main.py
