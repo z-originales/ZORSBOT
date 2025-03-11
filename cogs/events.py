@@ -1,29 +1,42 @@
+from discord import bot, ApplicationContext, DiscordException
 from discord.ext import commands
 import discord
 
 from loguru import logger as log
+from model.managers import HabitueManager, UserManager
 from main import ZORS
 
 
 class Events(commands.Cog):
     def __init__(self, bot: ZORS):
         self.bot = bot
+        self.bot.before_invoke(self._log_every_command)
 
-    @discord.Cog.listener()
-    async def on_application_command(self, ctx: commands.Context):
-        log.trace(f"Received command: {ctx.command} was invoked by {ctx.author}")
+    async def _log_every_command(self, ctx: ApplicationContext):
+        """
+        Logs every command called by a user.
+        This is used instead of the default on_application_command since it runs in parallel with the command not before it.
+        Args:
+            ctx: The context of the command.
+
+        Returns:
+
+        """
+        log.trace(f"Command {ctx.command} called by {ctx.author}.")
+
 
     @discord.Cog.listener()
     async def on_application_command_error(
         self,
         ctx: discord.ApplicationContext,
-        error: commands.CommandError | commands.MissingRole,
+        error: DiscordException,
     ):
         message_beginning = (
             f"An error occurred while executing the command {ctx.command}."
         )
         match type(error):
             case commands.MissingRole:
+                error: commands.MissingRole
                 missing_rolename = error.missing_role
                 roleid = str(
                     discord.utils.get(ctx.guild.roles, name=missing_rolename).id
@@ -36,6 +49,15 @@ class Events(commands.Cog):
                     f"You don't have the required role <@&{roleid}> to execute this command and "
                     f"shouldn't be able to see it. Please contact an admin so he can manage the command access.",
                     allowed_mentions=None,
+                )
+            case commands.MissingPermissions:
+                error: commands.MissingPermissions
+                missing_permissions = error.missing_permissions
+                log.error(
+                    f"{message_beginning} - MissingPermissions: {missing_permissions} for {ctx.author}"
+                )
+                await ctx.respond(
+                    f"You don't have the required permissions to execute this command. Please contact an admin."
                 )
             case _:
                 log.error(f"{message_beginning} - Error: {error}")
@@ -50,9 +72,8 @@ class Events(commands.Cog):
         if member.bot:
             log.debug(f"Member {member} is a bot, skipping.")
             return
-        await self.bot.database.user.create(
-            data={"id": member.id, "name": member.name, "type": "COMMON_USER"}
-        )
+        async with self.bot.database.get_session() as session:
+            await UserManager.add(session, member)
 
     @discord.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -60,7 +81,8 @@ class Events(commands.Cog):
         if member.bot:
             log.debug(f"Member {member} is a bot, skipping.")
             return
-        await self.bot.database.user.delete(where={"id": member.id})
+        async with self.bot.database.get_session() as session:
+            await UserManager.delete(session, member)
 
 
 def setup(bot: ZORS):
