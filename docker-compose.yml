@@ -2,6 +2,8 @@ services:
   discord-bot:
     image: ghcr.io/lolozendev/zorsbot:latest
     container_name: ZORSBot
+    restart:
+      unless-stopped
     env_file:
       - .env
     volumes:
@@ -23,7 +25,7 @@ services:
     volumes:
       - ./database/pgdata:/var/lib/postgresql/data # Persist data even if container is removed
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 5s
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
       timeout: 5s
       retries: 5
