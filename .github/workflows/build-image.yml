@@ -3,7 +3,10 @@ name: Generate Docker image when new version of the bot is pushed to main
 on:
   push:
     tags:
-      - ^v[0-9]+.[0-9]+((\.[0-9]*(\-RC[0-9])?)|\-RC[0-9])?$
+      - 'v[0-9]+.[0-9]+'       # Matches v1.2
+      - 'v[0-9]+.[0-9]+-RC[0-9]'   # Matches v1.2-RC1
+      - 'v[0-9]+.[0-9]+.[0-9]+'     # Matches v1.2.3
+      - 'v[0-9]+.[0-9]+.[0-9]+-RC[0-9]' # Matches v1.2.3-RC1
 
 jobs:
   build-image:
