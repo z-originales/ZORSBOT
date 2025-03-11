@@ -1,5 +1,5 @@
 # BUILDER stage
-FROM python:3.13-slim-bookworm AS builder
+FROM ghcr.io/astral-sh/uv:python3.13-alpine AS builder
 LABEL authors="ZEN"
 WORKDIR /app
 
@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-cache --no-dev --compile-bytecode --no-install-project
 
 # APP stage
-FROM python:3.13-slim-bookworm AS app
+FROM python:3.13-alpine AS app
 LABEL authors="ZEN"
 WORKDIR /app
 
