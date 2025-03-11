@@ -1,8 +1,11 @@
+import inspect
+import logging
+
 from loguru import logger
 from sys import stdout, stderr
 
 _event_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</>"
-_issue_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</> | {file}:{line} {exception}"
+_issue_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</> | {file}:{line}"
 _rotation_duration = "1 week"
 _retention_duration = "1 month"
 _compression_type = "gz"
@@ -18,7 +21,6 @@ def setup_logger(log_folder_path: str, level: str) -> None:
     add_issue_log_file(_default_issue_level, log_folder_path)
     set_colors()
 
-
 def add_event_console(log_level: str) -> None:
     logger.add(
         stdout,
@@ -26,35 +28,40 @@ def add_event_console(log_level: str) -> None:
         level=log_level,
         colorize=True,
         filter=lambda record: record["level"].no
-        < logger.level(_default_issue_level).no,
+        < logger.level(_default_issue_level).no
     )
 
 
 def add_issue_console(log_level: str) -> None:
-    logger.add(stderr, format=_issue_format, level=log_level, colorize=True)
+    logger.add(
+        stderr,
+        format=_issue_format,
+        level=log_level,
+        colorize=True
+    )
 
 
 def add_event_log_file(log_level: str, log_folder_path: str) -> None:
     logger.add(
-        log_folder_path + "/events/events.log",
+        f"{log_folder_path}/events/events.log",
         format=_event_format,
         rotation=_rotation_duration,
         retention=_retention_duration,
         level=log_level,
         filter=lambda record: record["level"].no
         < logger.level(_default_issue_level).no,
-        compression=_compression_type,
+        compression=_compression_type
     )
 
 
 def add_issue_log_file(log_level: str, log_folder_path: str) -> None:
     logger.add(
-        log_folder_path + "/issues/issues.log",
+        f"{log_folder_path}/issues/issues.log",
         format=_issue_format,
         rotation=_rotation_duration,
         retention=_retention_duration,
         level=log_level,
-        compression=_compression_type,
+        compression=_compression_type
     )
 
 
