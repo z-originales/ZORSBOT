@@ -1,4 +1,5 @@
 import traceback
+from pathlib import Path
 
 from typing import Self
 
@@ -12,6 +13,7 @@ from asyncio import run
 from config.settings import settings
 from model.database import Database
 
+
 class ZORS(commands.Bot):
     database: Database
     main_guild: discord.Guild | None
@@ -19,7 +21,7 @@ class ZORS(commands.Bot):
     def __init__(self, *args, **kwargs):
         log.debug("ZORS bot is starting up...")
         super().__init__(*args, **kwargs)
-        self.database: Database = Database(str(settings.postgres_url))
+        self.database = Database(str(settings.postgres_url))
         self.main_guild = None
         log.info("Successfully connected to the database")
         log.trace("ZORS bot has been initialized.")
@@ -27,7 +29,7 @@ class ZORS(commands.Bot):
         self._load_cogs()
 
     @classmethod
-    async def create_bot(cls) -> Self:
+    async def create_bot(cls) -> "ZORS":
         """
         Creates an instance of the bot.
         Returns: ZORS - Instance of the bot.
@@ -63,10 +65,6 @@ class ZORS(commands.Bot):
         """
         await super().start(settings.discord_token, *args, **kwargs)
 
-
-
-
-
     def _load_cogs(self) -> None:
         """
         Loads all cogs in the cogs directory recursively.
@@ -76,6 +74,9 @@ class ZORS(commands.Bot):
 
         """
         status = self.load_extensions("cogs", recursive=True, store=True)
+        if status is None:
+            log.debug("No cogs loaded.")
+            return
         for extension in status:
             match status[extension]:
                 case True:
@@ -94,14 +95,19 @@ class ZORS(commands.Bot):
                     log.error(f"Unknown error: {extension} - {status[extension]}")
                     print(traceback.format_exc())
 
+
 @log.catch(
     level="CRITICAL",
     message="Unexpected error occurred, that forced the bot to shut down.",
 )
 async def main():
-    logger.setup_logger('logs' if not settings.logs_path else settings.logs_path, 'INFO' if not settings.log_level else settings.log_level)
+    logger.setup_logger(
+        Path("logs") if not settings.logs_path else settings.logs_path,
+        "INFO" if not settings.log_level else settings.log_level,
+    )
     zors_bot = await ZORS.create_bot()
     await zors_bot.start()
+
 
 if __name__ == "__main__":
     run(main())
