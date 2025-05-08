@@ -1,10 +1,11 @@
 from typing import Tuple
-from httpx import TimeoutException,AsyncClient
+from httpx import TimeoutException, AsyncClient
 import re
+
 
 class Color:
     @classmethod
-    async def get_color_name(cls,color:Tuple[int,int,int]) -> str:
+    async def get_color_name(cls, color: Tuple[int, int, int]) -> str:
         """
         Returns the name of a color based on its RGB values or if the request times out, returns the hexadecimal representation of the color.
 
@@ -24,11 +25,11 @@ class Color:
             return cls.to_hexstring(color)
 
     @classmethod
-    def to_hexstring(cls, color:Tuple[int,int,int]) -> str:
+    def to_hexstring(cls, color: Tuple[int, int, int]) -> str:
         return f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
 
     @classmethod
-    def from_hexstring(cls,hex_string:str) -> Tuple[int,int,int]:
+    def from_hexstring(cls, hex_string: str) -> Tuple[int, int, int]:
         if not re.match(r"^#[0-9a-fA-F]{6}$", hex_string):
             raise ValueError(f"{hex_string} is not a valid hexadecimal color")
 
