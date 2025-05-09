@@ -5,6 +5,7 @@ description = "A discord bot for 'la bande s4' server"
 authors = [{ name = "ZEN" }, { name = "Anemys" }]
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.15.2",
     "asyncpg>=0.30.0",
     "audioop-lts>=0.2.1",
     "httpx>=0.28.1",
@@ -18,6 +19,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=1.15.0",
     "ruff>=0.9.4",
 ]
 
@@ -27,3 +29,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages]
 find = { }
+
+[tool.mypy]
+plugins = ['pydantic.mypy']

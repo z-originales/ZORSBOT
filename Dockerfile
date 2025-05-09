@@ -16,10 +16,8 @@ FROM python:3.13-alpine AS app
 LABEL authors="ZEN"
 WORKDIR /app
 
-RUN mkdir -p /backups
-
 # Install the necessary system packages, need to find a way to not use bash in alpine image (for faster startup)
-RUN apk update && apk add --no-cache --upgrade openssl-dev bash
+RUN apk update && apk add --no-cache --upgrade openssl-dev bash postgresql-client
 
 # Copy the virtual environment from the builder stage
 COPY --from=builder /app/.venv /app/.venv
@@ -30,19 +28,17 @@ ENV PATH="/app/.venv/bin:$PATH"
 # set python unbuffered so that the output is printed to the console
 ENV PYTHONUNBUFFERED=1
 
-# Set the environment variables for the application folder and backup folder
-ENV APP_FOLDER=/app
-ENV BACKUP_FOLDER=/backups
-
 # Copy the application files
 ## volumes aimed folders
-RUN mkdir cogs
-RUN mkdir -p /backups
-COPY /cogs /backups/cogs
-COPY assets/ /backups/assets
+COPY cogs cogs
+COPY assets/ assets/
 RUN mkdir logs
 
 ## application files
+COPY alembic/env.py alembic/env.py
+COPY alembic/script.py.mako alembic/script.py.mako
+RUN mkdir alembic/versions
+COPY alembic.ini alembic.ini
 COPY config/ config/
 COPY model/ model/
 COPY utils/ utils/

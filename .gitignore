@@ -44,3 +44,6 @@ _*.md
 *.txt
 database/
 runningbot/
+
+# Ignore all alembic files
+alembic/versions/*
