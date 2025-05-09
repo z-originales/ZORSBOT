@@ -1,9 +1,9 @@
-from discord import bot, ApplicationContext, DiscordException
+from discord import ApplicationContext, DiscordException
 from discord.ext import commands
 import discord
 
 from loguru import logger as log
-from model.managers import HabitueManager, UserManager
+from model.managers import UserManager
 from main import ZORS
 
 
@@ -23,7 +23,6 @@ class Events(commands.Cog):
 
         """
         log.trace(f"Command {ctx.command} called by {ctx.author}.")
-
 
     @discord.Cog.listener()
     async def on_application_command_error(
@@ -57,7 +56,7 @@ class Events(commands.Cog):
                     f"{message_beginning} - MissingPermissions: {missing_permissions} for {ctx.author}"
                 )
                 await ctx.respond(
-                    f"You don't have the required permissions to execute this command. Please contact an admin."
+                    "You don't have the required permissions to execute this command. Please contact an admin."
                 )
             case _:
                 log.error(f"{message_beginning} - Error: {error}")

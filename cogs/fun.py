@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 from main import ZORS
-from loguru import logger as log
 
 
 class Fun(commands.Cog):

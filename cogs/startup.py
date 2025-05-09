@@ -9,10 +9,10 @@ import asyncio
 
 from main import ZORS
 
+
 class Startup(commands.Cog):
     def __init__(self, bot: ZORS):
         self.bot = bot
-
 
     async def checkup(self) -> None:
         """
@@ -32,20 +32,21 @@ class Startup(commands.Cog):
         log.debug("Checking for new users...")
         added_users = []
         async with self.bot.database.get_session() as session:
-            for member in [member for member in self.bot.main_guild.members if not member.bot]:
-                    results = await session.exec(
-                        select(User)
-                    )
-                    users = results.all()
-                    if member.id in [user.id for user in users]: # user is already in the database
-                        continue
-                    new_user = User(id=member.id, name=member.name)
-                    session.add(new_user)
-                    added_users.append(member.name)
+            for member in [
+                member for member in self.bot.main_guild.members if not member.bot
+            ]:
+                results = await session.exec(select(User))
+                users = results.all()
+                if member.id in [
+                    user.id for user in users
+                ]:  # user is already in the database
+                    continue
+                new_user = User(id=member.id, name=member.name)
+                session.add(new_user)
+                added_users.append(member.name)
             await session.commit()
         log.info(f"Added {len(added_users)} new users to the database.")
         log.debug(f"New users: {added_users}")
-
 
     async def check_for_habitues(self) -> None:
         """
@@ -55,12 +56,12 @@ class Startup(commands.Cog):
         log.debug("Checking for new habitues...")
         added_habitues = []
         async with self.bot.database.get_session() as session:
-            for member in [member for member in self.bot.main_guild.members if not member.bot]:
+            for member in [
+                member for member in self.bot.main_guild.members if not member.bot
+            ]:
                 user_role_list = [role.name for role in member.roles]
                 if "Les Habitués" in user_role_list:
-                    results = await session.exec(
-                        select(Habitue)
-                    )
+                    results = await session.exec(select(Habitue))
                     habitues = results.all()
                     if member.id in [habitue.id for habitue in habitues]:
                         continue
@@ -70,7 +71,6 @@ class Startup(commands.Cog):
         log.info(f"Added {len(added_habitues)} new habitues to the database.")
         log.debug(f"New habitues: {added_habitues}")
 
-
     async def check_for_streamers(self) -> None:
         """
         Checks for new streamers in the guild and adds them to the database.
@@ -79,12 +79,12 @@ class Startup(commands.Cog):
         log.debug("Checking for new streamers...")
         added_streamers = []
         async with self.bot.database.get_session() as session:
-            for member in [member for member in self.bot.main_guild.members if not member.bot]:
+            for member in [
+                member for member in self.bot.main_guild.members if not member.bot
+            ]:
                 user_role_list = [role.name for role in member.roles]
                 if "Streamer" in user_role_list:
-                    results = await session.exec(
-                        select(Streamer)
-                    )
+                    results = await session.exec(select(Streamer))
                     streamers = results.all()
                     if member.id in [streamer.id for streamer in streamers]:
                         continue
@@ -107,9 +107,5 @@ class Startup(commands.Cog):
         await self.checkup()
 
 
-
-
 def setup(bot: ZORS):
     bot.add_cog(Startup(bot))
-
-
