@@ -1,77 +1,119 @@
-#!/usr/bin/env bash
-check_folder_content() {
-  # Checks if all files in foldera are present in folderb no matter their names
-  local foldera="$1"
-  local folderb="$2"
+#!/bin/bash
 
-  # Get sha512sum of all files in foldera (including subfolders)
-  local foldera_hashes=$(find "$foldera" -type f -exec sha512sum {} + | awk '{print $1,$2}')
+# Exporter PGPASSWORD temporairement pour les commandes PostgreSQL
+export PGPASSWORD="${POSTGRES_PASSWORD}"
 
-  # Get sha512sum of all files in folderb (including subfolders)
-  local folderb_hashes=$(find "$folderb" -type f -exec sha512sum {} + | awk -v folderb="$folderb" -v foldera="$foldera" '{gsub(folderb, foldera, $2); print $1,$2}')
-
-  # Check if all hashes from foldera are present in folderb
-  while IFS= read -r hash; do
-    if ! grep -q "$hash" <<<"$folderb_hashes"; then
-      local file=$(awk '{print $2}' <<<"$hash")
-      echo "$file"
-    fi
-  done <<<"$foldera_hashes"
-}
-
-checkup_routine() {
-  local signaturefolder="$1"
-  local destinationfolder="$2"
-
-  if [ -z "$(ls -A "$destinationfolder")" ]; then
-    echo "$destinationfolder is empty, copying from backup"
-    if [ -n "$(ls -A "$signaturefolder")" ]; then
-      cp -r "$signaturefolder"/* "$destinationfolder"
-    else
-      echo "$signaturefolder is empty, nothing to copy"
-    fi
-  else
-    echo "$destinationfolder folder is not empty, checking content"
-    missing_files=$(check_folder_content "$signaturefolder" "$destinationfolder")
-    if [ -n "$missing_files" ]; then
-      echo "Copying missing files from $signaturefolder to $destinationfolder"
-      while IFS= read -r file; do
-        src_file="$signaturefolder/${file#$signaturefolder}"
-        dest_file="$destinationfolder/${file#$signaturefolder}"
-        dest_dir=$(dirname "$dest_file")
-        mkdir -p "$dest_dir"
-        cp "$src_file" "$dest_file"
-      done <<<"$missing_files"
-    else
-      echo "All content is already in destination folder"
-    fi
-  fi
-}
-
-#pre check
-if [ -z "$BACKUP_FOLDER" ]; then
-  echo "BACKUP_FOLDER is not set" >&2
-  exit 1
-fi
-
-# Config variables
-backup_folder="$BACKUP_FOLDER"
-cogs_folder="$APPLICATION_FOLDER/cogs"
-assets_folder="$APPLICATION_FOLDER/assets"
-
-# Checkup routine on cogs and assets
-checkup_routine "$backup_folder/cogs" "$cogs_folder"
-checkup_routine "$backup_folder/assets" "$assets_folder"
-
-# Wait for PostgreSQL to be ready
+# Attendre que PostgreSQL soit prêt en utilisant pg_isready
 dots=""
-while ! nc -z "${POSTGRES_HOST}" 5432; do
+while ! pg_isready -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" > /dev/null 2>&1; do
   dots+="."
-  echo -ne "Waiting for PostgreSQL to be ready$dots\r"
+  echo -ne "Attente de PostgreSQL$dots\r"
   sleep 2
+  if [ ${#dots} -ge 5  ]; then
+    dots=""
+  fi
 done
 
-echo "PostgreSQL is ready!"
+echo "PostgreSQL est prêt!"
 
-# Run the application
+# Variables d'environnement
+AUTO_MIGRATE_DB=${AUTO_MIGRATE_DB:-false}
+BACKUP_BEFORE_MIGRATE=${BACKUP_BEFORE_MIGRATE:-true}
+ALLOW_DESTRUCTIVE_CHANGES=${ALLOW_DESTRUCTIVE_CHANGES:-false}
+AUTO_RESTORE_ON_FAIL=${AUTO_RESTORE_ON_FAIL:-true}
+
+# TODO : ajouter une vérification fool proof pour prevenir si allow_destructive_changes est vrai et que auto_restore_on_fail est faux
+
+
+# Fonction pour effectuer la sauvegarde
+do_backup() {
+  BACKUP_FILE="/tmp/backups/db_backup_$(date +%Y%m%d_%H%M%S).sql"
+  mkdir -p /tmp/backups
+  echo "Création d'une sauvegarde de la base de données: $BACKUP_FILE"
+
+  if ! pg_dump -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$BACKUP_FILE"; then
+    echo "❌ Échec de la sauvegarde. La migration est annulée."
+    return 1
+  fi
+  echo "✓ Sauvegarde réussie: $BACKUP_FILE"
+  echo "$BACKUP_FILE"
+  return 0
+}
+
+# Si AUTO_MIGRATE est activé, générer et appliquer les migrations
+if [ "$AUTO_MIGRATE_DB" = "true" ]; then
+  echo "Vérification des changements de modèles..."
+
+  # Créer une sauvegarde si configuré
+  BACKUP_FILE=""
+  if [ "$BACKUP_BEFORE_MIGRATE" = "true" ]; then
+    if ! BACKUP_FILE=$(do_backup); then
+      # Nettoyage du mot de passe avant de quitter
+      unset PGPASSWORD
+      exit 1
+    fi
+  fi
+
+  # remove the old migration version from the database to avoid conflicts and force alembic to create a new one
+  psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DELETE FROM alembic_version;" > /dev/null 2>&1
+
+  # Créer d'abord la révision avec --autogenerate
+  alembic revision --autogenerate -m "Auto-migration $(date +%Y%m%d_%H%M%S)"
+
+  # Récupérer le nom du fichier de la dernière révision créée
+  LATEST_REVISION=$(ls -t /app/alembic/versions/*.py 2> /dev/null | head -1)
+
+  # Extract only the revision ID (the first part before the underscore "_")
+  REVISION_ID=$(basename "$LATEST_REVISION" .py | cut -d'_' -f1)
+
+  # Vérifier si la migration existe
+  if ! [ -z "$LATEST_REVISION" ] && [ -f "$LATEST_REVISION" ]; then
+    echo "Nouvelles migrations détectées."
+
+    # Vérifier les changements destructifs
+    if [ "$ALLOW_DESTRUCTIVE_CHANGES" != "true" ]; then
+      # Générer le SQL pour cette révision spécifique uniquement si nécessaire
+      alembic upgrade $REVISION_ID:head --sql 1> /tmp/migration_preview.sql
+      if grep -E 'DROP|ALTER COLUMN.*DROP' /tmp/migration_preview.sql; then
+        echo "❌ AVERTISSEMENT: Changements destructifs détectés!"
+        echo "Pour autoriser ces changements, définissez ALLOW_DESTRUCTIVE_CHANGES=true"
+        # Nettoyage du mot de passe avant de quitter
+        unset PGPASSWORD
+        exit 1
+      fi
+    fi
+
+    echo "Application des migrations..."
+    if alembic upgrade head; then
+      echo "✓ Migrations automatiques appliquées avec succès."
+      rm -f /app/alembic/versions/*.py
+    else
+      echo "❌ Échec des migrations automatiques."
+
+      # Restaurer automatiquement si configuré et sauvegarde disponible
+      if [ "$AUTO_RESTORE_ON_FAIL" = "true" ] && [ -n "$BACKUP_FILE" ] && [ -f "$BACKUP_FILE" ]; then
+        echo "Restauration automatique à partir de la sauvegarde..."
+        if psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$BACKUP_FILE"; then
+          echo "✓ Base de données restaurée avec succès."
+        else
+          echo "❌ Échec de la restauration automatique."
+        fi
+      fi
+
+      # Nettoyage du mot de passe avant de quitter
+      unset PGPASSWORD
+      exit 1
+    fi
+  else
+    echo "✓ Aucun changement de modèle détecté. Base de données à jour."
+  fi
+fi
+
+# Nettoyage du mot de passe avant d'exécuter l'application principale
+# Cela évite que le mot de passe reste dans l'environnement pendant l'exécution de l'application
+unset PGPASSWORD
+rm -rf /tmp/*
+
+# Exécuter l'application
+echo "Démarrage de l'application..."
 exec python3 main.py
