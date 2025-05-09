@@ -1,39 +1,55 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource, YamlConfigSettingsSource, EnvSettingsSource
-from pydantic import PostgresDsn, computed_field
-from yaml import safe_load
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+    PydanticBaseSettingsSource,
+    YamlConfigSettingsSource,
+)
+from pydantic import computed_field, PostgresDsn
 from pathlib import Path
 
 config_path = Path(__file__).parent / "config.yaml"
 dotenv_path = Path(__file__).parent.parent / ".env"
 
+
 class Settings(BaseSettings):
-
-    #region .env
+    # region .env
     discord_token: str
-    postgres_url: PostgresDsn
     postgres_password: str
-    #endregion
+    postgres_user: str
+    postgres_db: str
+    postgres_host: str
+    postgres_port: str
+    postgres_scheme: str
+    # endregion
 
-    #region config.yaml
+    # region config.yaml
     habitue_role_name: str
     log_level: str
     logs_path: Path
-    #endregion
+    # endregion
 
-    model_config = SettingsConfigDict(yaml_file=config_path, env_file=dotenv_path)
+    @property
+    @computed_field
+    def postgres_url(self) -> str:
+        """
+        Returns the postgres url
+        Returns:
+            str: postgres url
+        """
+        return f"{self.postgres_scheme}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+
+    model_config = SettingsConfigDict(yaml_file=config_path, env_file=dotenv_path, extra="ignore")
 
     @classmethod
     def settings_customise_sources(
-            cls,
-            settings_cls: type[BaseSettings],
-            init_settings: PydanticBaseSettingsSource,
-            env_settings: PydanticBaseSettingsSource,
-            dotenv_settings: PydanticBaseSettingsSource,
-            file_secret_settings: PydanticBaseSettingsSource,
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        return (
-            YamlConfigSettingsSource(settings_cls), dotenv_settings, env_settings
-        )
+        return YamlConfigSettingsSource(settings_cls), env_settings, dotenv_settings
 
     def edit_variables(self):
         """
@@ -53,4 +69,4 @@ class Settings(BaseSettings):
         self.__init__()
 
 
-settings:Settings = Settings() #type: ignore[attr-defined]
+settings: Settings = Settings()  # type: ignore[attr-defined]
