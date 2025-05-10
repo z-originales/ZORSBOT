@@ -28,29 +28,29 @@ class Events(commands.Cog):
     async def on_application_command_error(
         self,
         ctx: discord.ApplicationContext,
-        error: DiscordException,
+        error, # not typed because it can be any exception
     ):
         message_beginning = (
             f"An error occurred while executing the command {ctx.command}."
         )
         match type(error):
             case commands.MissingRole:
-                error: commands.MissingRole
-                missing_rolename = error.missing_role
-                roleid = str(
-                    discord.utils.get(ctx.guild.roles, name=missing_rolename).id
-                )
+                # Au lieu de redéfinir error, utilisez-le directement
+                missing_role = error.missing_role
+                role = discord.utils.get(ctx.guild.roles, name=missing_role)
+                # Vérifiez que le rôle existe avant d'accéder à son ID
+                roleid = str(role.id) if role else "rôle inconnu"
                 log.error(
-                    f"{message_beginning} - MissingRole: {missing_rolename} for {ctx.author}, that shouldn't happen "
+                    f"{message_beginning} - MissingRole: {missing_role} for {ctx.author}, that shouldn't happen "
                     f"check the integration settings and make sure this command is only visible to the right role."
                 )
                 await ctx.respond(
                     f"You don't have the required role <@&{roleid}> to execute this command and "
                     f"shouldn't be able to see it. Please contact an admin so he can manage the command access.",
-                    allowed_mentions=None,
+                    allowed_mentions=discord.AllowedMentions.none()
                 )
             case commands.MissingPermissions:
-                error: commands.MissingPermissions
+                # Utilisez directement error sans le redéfinir
                 missing_permissions = error.missing_permissions
                 log.error(
                     f"{message_beginning} - MissingPermissions: {missing_permissions} for {ctx.author}"
