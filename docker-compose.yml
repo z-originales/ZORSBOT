@@ -8,7 +8,6 @@ services:
       - .env
     volumes:
         - ./runningbot/assets:/app/assets
-        - ./runningbot/cogs:/app/cogs
         - ./runningbot/logs:/app/logs
     depends_on:
       database:
