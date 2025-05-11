@@ -39,13 +39,13 @@ COPY alembic/env.py alembic/env.py
 COPY alembic/script.py.mako alembic/script.py.mako
 RUN mkdir alembic/versions
 COPY alembic.ini alembic.ini
+COPY cogs/ cogs/
 COPY config/ config/
 COPY model/ model/
 COPY utils/ utils/
 COPY main.py main.py
 
 ## Volumes declaration
-VOLUME /app/cogs
 VOLUME /app/logs
 VOLUME /app/assets
 
