@@ -28,8 +28,8 @@ class Settings(BaseSettings):
     logs_path: Path
     # endregion
 
-    @property
     @computed_field
+    @property
     def postgres_url(self) -> str:
         """
         Returns the postgres url
