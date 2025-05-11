@@ -1,4 +1,3 @@
-from sqlalchemy import Result
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from model.schemas import Habitue, User, GameCategory, Party
@@ -16,7 +15,9 @@ class UserManager:
         log.debug(f"DATABASE: Added user {member.display_name}")
 
     @classmethod
-    async def get_user_from_database(cls, session: AsyncSession, member: discord.Member):
+    async def get_user_from_database(
+        cls, session: AsyncSession, member: discord.Member
+    ):
         results = await session.exec(select(User).where(User.id == member.id))
         user: User | None = results.first()
         if user is None:
@@ -36,10 +37,10 @@ class UserManager:
     @classmethod
     async def delete(cls, session: AsyncSession, member: discord.Member):
         user = await cls.get_user_from_database(session, member)
-        await session.delete(user)
-        await session.flush()
-        await session.commit()
-        log.debug(f"DATBASE: Deleted user {member.display_name}")
+        if user is not None:
+            await session.delete(user)
+            await session.commit()
+            log.debug(f"DATABASE: Deleted user {member.display_name} and all related entries")
 
     # endregion
 
@@ -215,8 +216,6 @@ class GameCategoryManager:
         return game_category.parties
 
     # endregion
-
-
 
 
 class PartyManager:
