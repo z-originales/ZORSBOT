@@ -1,4 +1,4 @@
-from discord import ApplicationContext, DiscordException
+from discord import ApplicationContext
 from discord.ext import commands
 import discord
 
@@ -28,7 +28,7 @@ class Events(commands.Cog):
     async def on_application_command_error(
         self,
         ctx: discord.ApplicationContext,
-        error, # not typed because it can be any exception
+        error,  # not typed because it can be any exception
     ):
         message_beginning = (
             f"An error occurred while executing the command {ctx.command}."
@@ -47,7 +47,7 @@ class Events(commands.Cog):
                 await ctx.respond(
                     f"You don't have the required role <@&{roleid}> to execute this command and "
                     f"shouldn't be able to see it. Please contact an admin so he can manage the command access.",
-                    allowed_mentions=discord.AllowedMentions.none()
+                    allowed_mentions=discord.AllowedMentions.none(),
                 )
             case commands.MissingPermissions:
                 # Utilisez directement error sans le redéfinir

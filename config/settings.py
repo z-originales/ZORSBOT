@@ -4,7 +4,7 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     YamlConfigSettingsSource,
 )
-from pydantic import computed_field, PostgresDsn
+from pydantic import computed_field
 from pathlib import Path
 
 config_path = Path(__file__).parent / "config.yaml"
@@ -38,7 +38,9 @@ class Settings(BaseSettings):
         """
         return f"{self.postgres_scheme}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
-    model_config = SettingsConfigDict(yaml_file=config_path, env_file=dotenv_path, extra="ignore")
+    model_config = SettingsConfigDict(
+        yaml_file=config_path, env_file=dotenv_path, extra="ignore"
+    )
 
     @classmethod
     def settings_customise_sources(

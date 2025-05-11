@@ -38,7 +38,7 @@ def add_issue_console(log_level: str) -> None:
 
 def add_event_log_file(log_level: str, log_folder_path: Path) -> None:
     logger.add(
-        log_folder_path/"events"/"events.log",
+        log_folder_path / "events" / "events.log",
         format=_event_format,
         rotation=_rotation_duration,
         retention=_retention_duration,
@@ -51,8 +51,7 @@ def add_event_log_file(log_level: str, log_folder_path: Path) -> None:
 
 def add_issue_log_file(log_level: str, log_folder_path: Path) -> None:
     logger.add(
-
-        log_folder_path/"issues"/"issues.log",
+        log_folder_path / "issues" / "issues.log",
         format=_issue_format,
         rotation=_rotation_duration,
         retention=_retention_duration,
@@ -99,14 +98,17 @@ class _InterceptHandler(logging.Handler):
             logger_with_opts.log(level, "{}", record.getMessage())
         except Exception as e:
             # Fallback: safely construct a message and log a warning if an exception occurs.
-            safe_msg = getattr(record, 'msg', None) or str(record)
+            safe_msg = getattr(record, "msg", None) or str(record)
             logger_with_opts.warning(
                 "Exception logging the following native logger message: {}, {!r}",
                 safe_msg,
-                e
+                e,
             )
 
-def intercept_logger(logger_name: str, propagate: bool = False, level: int = logging.DEBUG) -> None:
+
+def intercept_logger(
+    logger_name: str, propagate: bool = False, level: int = logging.DEBUG
+) -> None:
     target_logger = logging.getLogger(logger_name)
     # Add the intercept handler without removing existing ones
     target_logger.propagate = propagate

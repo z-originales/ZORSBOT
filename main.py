@@ -1,7 +1,6 @@
 import traceback
 from pathlib import Path
 
-from typing import Self
 
 import discord
 from discord.ext import commands

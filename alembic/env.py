@@ -1,14 +1,11 @@
 import asyncio
 import logging
 import sys
-from logging import Logger
 from logging.config import fileConfig
-from pathlib import Path
 
-from config.settings import Settings, settings
+from config.settings import settings
 from utils import logger
 from loguru import logger as log
-import loguru
 import inspect
 
 from sqlalchemy import pool
@@ -17,12 +14,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 
 from alembic import context
-from alembic.autogenerate import compare_metadata
 
-from os import getenv
 
 from model import schemas
-from model.database import Database
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -34,19 +28,18 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Setup the custom logger
-logger.intercept_logger("sqlalchemy",level=logging.INFO)
-logger.intercept_logger("alembic",level=logging.INFO)
+logger.intercept_logger("sqlalchemy", level=logging.INFO)
+logger.intercept_logger("alembic", level=logging.INFO)
 logger.set_colors()
 log.remove()
 log.add(
     sys.stderr,
     format="{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</>",
-    colorize=True
+    colorize=True,
 )
 
 
-
-#log the name of each schemas imported
+# log the name of each schemas imported
 for name, obj in inspect.getmembers(schemas, inspect.isclass):
     if obj.__module__ == schemas.__name__:
         log.info(f"Imported schema: {name}")
@@ -68,6 +61,7 @@ def process_revision_directives(context, revision, directives):
     if script.upgrade_ops.is_empty():
         # print("Aucun changement de schéma détecté - Aucun fichier de migration ne sera créé")
         directives[:] = []
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -99,12 +93,11 @@ def do_run_migrations(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         # Ajouter cette ligne pour utiliser la fonction de traitement
-        process_revision_directives=process_revision_directives
+        process_revision_directives=process_revision_directives,
     )
 
     with context.begin_transaction():
         context.run_migrations()
-
 
 
 async def run_async_migrations() -> None:
