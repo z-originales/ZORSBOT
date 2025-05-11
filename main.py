@@ -48,7 +48,10 @@ class ZORS(commands.Bot):
 
         bot = ZORS(
             description="ZORS !",
-            activity=discord.Game(name="/ping for now"),
+            activity=discord.Activity(
+                type=discord.ActivityType.custom,
+                name="ZORS !"
+            ),
             intents=zorsintents,
             help_command=None,
         )
