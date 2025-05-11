@@ -88,10 +88,10 @@ class HabitueManager:
     @classmethod
     async def delete(cls, session: AsyncSession, member: discord.Member):
         habitue = await cls.get_habitue_from_database(session, member)
-        await session.delete(habitue)
-        await session.flush()
-        await session.commit()
-        log.debug(f"DATABASE: Deleted habitue {member.display_name}")
+        if habitue is not None:
+            await session.delete(habitue)
+            await session.commit()
+            log.debug(f"DATABASE: Deleted habitue {member.display_name}")
 
     # endregion
 
@@ -187,10 +187,10 @@ class GameCategoryManager:
     @classmethod
     async def delete(cls, session: AsyncSession, name: str):
         game_category = await cls.get_game_category_from_database(session, name)
-        await session.delete(game_category)
-        await session.flush()
-        await session.commit()
-        log.debug(f"DATABASE: Deleted game category {name}")
+        if game_category is not None:
+            await session.delete(game_category)
+            await session.commit()
+            log.debug(f"DATABASE: Deleted game category {name}")
 
     # endregion
 
@@ -247,3 +247,4 @@ class PartyManager:
             )
             return None
         return party
+
