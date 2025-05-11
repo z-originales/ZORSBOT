@@ -32,11 +32,11 @@ class User(SQLModel, table=True):
         passive_deletes=True,
     )
     moderate_for: Optional[list["Streamer"]] = Relationship(
-        back_populates="moderators", link_model=StreamerModeratorRelation
+        back_populates="moderators", link_model=StreamerModeratorRelation,sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
     owned_party: Optional["Party"] = Relationship(
         back_populates="owner",
-        sa_relationship_kwargs={"uselist": False},
+        sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
     )
 
 
