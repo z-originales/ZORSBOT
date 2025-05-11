@@ -141,16 +141,15 @@ class GameCategoryManager:
         log.debug(f"DATABASE: Added game category {game_name}")
 
     @classmethod
-    async def get_all(cls, session):
+    async def get_all(cls, session) -> list[GameCategory]:
         results = await session.exec(select(GameCategory))
         game_categories = results.all()
         if len(game_categories) == 0:
-            log.error("No game categories found in the database")
-            return None
+            return []
         return game_categories
 
     @classmethod
-    async def get_game_category_from_database(
+    async def get_game_category_by_name(
         cls, session: AsyncSession, name: str
     ) -> GameCategory | None:
         results = await session.exec(
@@ -165,6 +164,21 @@ class GameCategoryManager:
         return game_category
 
     @classmethod
+    async def get_game_category_from_database(
+            cls, session: AsyncSession, id: int
+    ) -> GameCategory | None:
+        results = await session.exec(
+            select(GameCategory).where(GameCategory.id == id)
+        )
+        game_category: GameCategory | None = results.first()
+        if game_category is None:
+            log.error(
+                f"the GameCategory with id {id}  isn't found in the database, are you sure it exists?"
+            )
+            return None
+        return game_category
+
+    @classmethod
     async def update_game_category(
         cls,
         session: AsyncSession,
@@ -173,9 +187,14 @@ class GameCategoryManager:
         text_id: int,
         voice_id: int,
     ):
-        game_category: GameCategory | None = await cls.get_game_category_from_database(
-            session, name
-        )
+        game_category: GameCategory | None = await cls.get_game_category_by_name(session, name)
+        if game_category is None:
+            return
+        game_category.forum_id = forum_id
+        game_category.text_id = text_id
+        game_category.voice_id = voice_id
+        await session.commit()
+        log.debug(f"DATABASE: Updated game category {name}")
         if game_category is None:
             return
         game_category.forum_id = forum_id
@@ -185,12 +204,20 @@ class GameCategoryManager:
         log.debug(f"DATABASE: Updated game category {name}")
 
     @classmethod
-    async def delete(cls, session: AsyncSession, name: str):
-        game_category = await cls.get_game_category_from_database(session, name)
+    async def delete_from_name(cls, session: AsyncSession, name: str):
+        game_category = await cls.get_game_category_by_name(session, name)
         if game_category is not None:
             await session.delete(game_category)
             await session.commit()
             log.debug(f"DATABASE: Deleted game category {name}")
+
+    @classmethod
+    async def delete(cls, session: AsyncSession, id: int):
+        game_category = await cls.get_game_category_from_database(session, id)
+        if game_category is not None:
+            await session.delete(game_category)
+            await session.commit()
+            log.debug(f"DATABASE: Deleted game category {game_category.name}")
 
     # endregion
 
@@ -199,7 +226,7 @@ class GameCategoryManager:
     async def get_channels(
         cls, session: AsyncSession, name: str
     ) -> tuple[int, int, int] | None:
-        game_category: GameCategory | None = await cls.get_game_category_from_database(
+        game_category: GameCategory | None = await cls.get_game_category_by_name(
             session, name
         )
         if game_category is None:
@@ -208,7 +235,7 @@ class GameCategoryManager:
 
     @classmethod
     async def get_parties(cls, session: AsyncSession, name: str) -> list[Party] | None:
-        game_category: GameCategory | None = await cls.get_game_category_from_database(
+        game_category: GameCategory | None = await cls.get_game_category_by_name(
             session, name
         )
         if game_category is None:
