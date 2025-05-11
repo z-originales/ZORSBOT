@@ -32,8 +32,11 @@ class User(SQLModel, table=True):
         passive_deletes=True,
     )
     moderate_for: Optional[list["Streamer"]] = Relationship(
-        back_populates="moderators", link_model=StreamerModeratorRelation,sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+        back_populates="moderators",
+        link_model=StreamerModeratorRelation,
+        sa_relationship_kwargs={"cascade": "all"}  # Retirez "delete-orphan" ici
     )
+
     owned_party: Optional["Party"] = Relationship(
         back_populates="owner",
         sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
@@ -60,8 +63,11 @@ class Streamer(SQLModel, table=True):
     channel_tag: str | None = Field(sa_type=String, nullable=True)
 
     moderators: list[User] = Relationship(
-        back_populates="moderate_for", link_model=StreamerModeratorRelation
+        back_populates="moderate_for",
+        link_model=StreamerModeratorRelation,
+        sa_relationship_kwargs={"cascade": "all"}
     )
+
     user: User = Relationship(back_populates="streamer")
 
 
@@ -73,7 +79,10 @@ class GameCategory(SQLModel, table=True):
     text_id: int = Field(sa_type=BigInteger)
     voice_id: int = Field(sa_type=BigInteger)
 
-    parties: list["Party"] = Relationship(back_populates="game_category")
+    parties: list["Party"] = Relationship(
+        back_populates="game_category",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
 
 class Party(SQLModel, table=True):
