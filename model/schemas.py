@@ -34,10 +34,10 @@ class User(SQLModel, table=True):
     moderate_for: Optional[list["Streamer"]] = Relationship(
         back_populates="moderators",
         link_model=StreamerModeratorRelation,
-        sa_relationship_kwargs={"cascade": "all"}  # Retirez "delete-orphan" ici
+        sa_relationship_kwargs={"cascade": "all"},  # Retirez "delete-orphan" ici
     )
 
-    owned_party: Optional["Party"] = Relationship(
+    own_party: Optional["Party"] = Relationship(
         back_populates="owner",
         sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
     )
@@ -65,7 +65,7 @@ class Streamer(SQLModel, table=True):
     moderators: list[User] = Relationship(
         back_populates="moderate_for",
         link_model=StreamerModeratorRelation,
-        sa_relationship_kwargs={"cascade": "all"}
+        sa_relationship_kwargs={"cascade": "all"},
     )
 
     user: User = Relationship(back_populates="streamer")
@@ -81,15 +81,15 @@ class GameCategory(SQLModel, table=True):
 
     parties: list["Party"] = Relationship(
         back_populates="game_category",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
 
 class Party(SQLModel, table=True):
-    id: int = Field(primary_key=True, sa_type=BigInteger)
+    channel_id: int = Field(primary_key=True, sa_type=BigInteger)
     game_category_id: int = Field(foreign_key="gamecategory.id", sa_type=BigInteger)
     owner_id: int = Field(foreign_key="user.id", sa_type=BigInteger)
     name: str
 
     game_category: GameCategory = Relationship(back_populates="parties")
-    owner: User = Relationship(back_populates="owned_party")
+    owner: User = Relationship(back_populates="own_party")

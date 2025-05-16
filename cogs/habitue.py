@@ -164,17 +164,29 @@ class Habitue(commands.Cog):
                     f"{member.display_name} seems to be an habitue, creating the color role"
                 )
                 try:
-                    role = await self._create_color_role(member.guild, member.display_name)
+                    role = await self._create_color_role(
+                        member.guild, member.display_name
+                    )
                     await member.add_roles(role)
                 except ValueError as e:
                     log.error(f"Erreur lors de la création du rôle de couleur : {e}")
-                    raise ValueError(f"Impossible de créer le rôle de couleur pour {member.display_name}: {e}")
+                    raise ValueError(
+                        f"Impossible de créer le rôle de couleur pour {member.display_name}: {e}"
+                    )
                 except discord.Forbidden as e:
-                    log.error(f"Permissions insuffisantes pour créer le rôle de couleur : {e}")
-                    raise ValueError(f"Permissions insuffisantes pour créer le rôle de couleur pour {member.display_name}")
+                    log.error(
+                        f"Permissions insuffisantes pour créer le rôle de couleur : {e}"
+                    )
+                    raise ValueError(
+                        f"Permissions insuffisantes pour créer le rôle de couleur pour {member.display_name}"
+                    )
                 except discord.HTTPException as e:
-                    log.error(f"Erreur Discord lors de la création du rôle de couleur : {e}")
-                    raise ValueError(f"Erreur Discord lors de la création du rôle de couleur pour {member.display_name}")
+                    log.error(
+                        f"Erreur Discord lors de la création du rôle de couleur : {e}"
+                    )
+                    raise ValueError(
+                        f"Erreur Discord lors de la création du rôle de couleur pour {member.display_name}"
+                    )
 
         if role is None:
             raise ValueError(
@@ -187,10 +199,13 @@ class Habitue(commands.Cog):
             await HabitueManager.update_color(
                 session, member, f"#{red:02x}{green:02x}{blue:02x}"
             )
-            await session.commit()
-            await session.refresh(
-                await HabitueManager.get_habitue_from_database(session, member)
-            )
+            habitue = await HabitueManager.get_by_member(session, member)
+            if habitue is None:
+                raise ValueError(
+                    f"L'habitué {member.display_name} n'existe pas dans la base de données"
+                )
+
+            await session.refresh(habitue)
             color_name = await HabitueManager.get_color_name(session, member)
             if color_name is None:
                 raise ValueError(
@@ -205,25 +220,29 @@ class Habitue(commands.Cog):
         if habitue_role is None:
             log.error(f"Role {self.rolename} not found in the guild {guild.name}")
             return
-        
+
         try:
             color_role = await self._create_color_role(guild, member.display_name)
             await member.add_roles(habitue_role, color_role)
-            
+
             async with self.bot.database.get_session() as session:
                 await HabitueManager.add(session, member, color)
-                
+
             log.info(f"Added habitue {member.display_name} to {guild.name}")
-            
+
         except ValueError as e:
             log.error(f"Erreur lors de la création du rôle de couleur : {e}")
             # Ajouter uniquement le rôle d'habitué, sans le rôle de couleur
             await member.add_roles(habitue_role)
-            log.info(f"Added habitue {member.display_name} to {guild.name} (without color role)")
-            
+            log.info(
+                f"Added habitue {member.display_name} to {guild.name} (without color role)"
+            )
+
         except discord.Forbidden as e:
-            log.error(f"Permissions insuffisantes pour créer ou ajouter des rôles : {e}")
-            
+            log.error(
+                f"Permissions insuffisantes pour créer ou ajouter des rôles : {e}"
+            )
+
         except discord.HTTPException as e:
             log.error(f"Erreur Discord lors de l'ajout de l'habitué : {e}")
 
@@ -244,22 +263,20 @@ class Habitue(commands.Cog):
         await color_role.delete()
         await member.remove_roles(habitue_role)
         async with self.bot.database.get_session() as session:
-            await HabitueManager.delete(session, member)
+            await HabitueManager.delete_by_member(session, member)
         log.info(f"Removed habitue {member.display_name} from {guild.name}")
 
-    async def _create_color_role(
-        self, guild: Guild, member_display_name: str
-    ) -> Role:
+    async def _create_color_role(self, guild: Guild, member_display_name: str) -> Role:
         """
         Crée un rôle de couleur pour un membre habitué.
-        
+
         Args:
             guild: Le serveur Discord où créer le rôle
             member_display_name: Le nom d'affichage du membre
-            
+
         Returns:
             Le rôle créé ou existant
-            
+
         Raises:
             ValueError: Si le rôle catégorie n'existe pas ou si le nom d'affichage est invalide
             discord.Forbidden: Si le bot n'a pas les permissions nécessaires
@@ -268,47 +285,51 @@ class Habitue(commands.Cog):
         # Vérification que le nom d'affichage est valide
         if not member_display_name or len(member_display_name.strip()) == 0:
             raise ValueError("Le nom d'affichage du membre ne peut pas être vide")
-            
+
         # Recherche du rôle de catégorie
         category: Role | None = discord.utils.get(guild.roles, name=self.category_role)
         if category is None:
             error_msg = f"Rôle de catégorie '{self.category_role}' introuvable dans le serveur '{guild.name}'"
             log.error(error_msg)
             raise ValueError(error_msg)
-            
+
         # Définition du nom du rôle de couleur
-        color_role_name = self.habitue_colorname_template.format(username=member_display_name)
-        
+        color_role_name = self.habitue_colorname_template.format(
+            username=member_display_name
+        )
+
         # Vérification si le rôle existe déjà
         existing_role = discord.utils.get(guild.roles, name=color_role_name)
         if existing_role:
             log.debug(f"Rôle de couleur pour '{member_display_name}' déjà existant")
             return existing_role
-            
+
         try:
             # Création du nouveau rôle avec une couleur par défaut
-            log.info(f"Création du rôle de couleur '{color_role_name}' pour {member_display_name}")
+            log.info(
+                f"Création du rôle de couleur '{color_role_name}' pour {member_display_name}"
+            )
             role = await guild.create_role(
                 name=color_role_name,
                 color=discord.Color.from_rgb(0, 0, 0),
-                reason=f"Création automatique du rôle de couleur pour l'habitué {member_display_name}"
+                reason=f"Création automatique du rôle de couleur pour l'habitué {member_display_name}",
             )
-            
+
             # Placement du rôle dans la hiérarchie
             try:
                 await role.edit(position=category.position)
             except discord.HTTPException as e:
                 log.warning(f"Impossible de positionner le rôle correctement: {e}")
                 # On continue car ce n'est pas critique
-                
+
             log.debug(f"Rôle de couleur créé avec succès pour {member_display_name}")
             return role
-            
+
         except discord.Forbidden as e:
             error_msg = f"Permissions insuffisantes pour créer le rôle de couleur: {e}"
             log.error(error_msg)
             raise
-            
+
         except discord.HTTPException as e:
             error_msg = f"Erreur Discord lors de la création du rôle de couleur: {e}"
             log.error(error_msg)
@@ -319,4 +340,3 @@ class Habitue(commands.Cog):
 
 def setup(bot: ZORS):
     bot.add_cog(Habitue(bot))
-
