@@ -48,10 +48,7 @@ class ZORS(commands.Bot):
 
         bot = ZORS(
             description="ZORS !",
-            activity=discord.Activity(
-                type=discord.ActivityType.custom,
-                name="ZORS !"
-            ),
+            activity=discord.Activity(type=discord.ActivityType.custom, name="ZORS !"),
             intents=zorsintents,
             help_command=None,
         )
@@ -70,7 +67,7 @@ class ZORS(commands.Bot):
     def _load_cogs(self) -> None:
         """
         Loads all cogs in the cogs directory recursively.
-        python files starting with an underscore aren't started. This is default pycord behavior.
+        Python files starting with an underscore aren't started. This is the default pycord behavior.
 
         Returns:
 
@@ -95,7 +92,6 @@ class ZORS(commands.Bot):
                     log.error(f"Cog failed to load: {extension} - {status[extension]}")
                 case _:
                     log.error(f"Unknown error: {extension} - {status[extension]}")
-                    print(traceback.format_exc())
 
 
 @log.catch(
