@@ -2,13 +2,13 @@ import discord
 from discord import Member, Guild, Role
 from discord.ext import commands
 
+from config.settings import settings
 from main import ZORS
 from model.managers import HabitueManager
 from loguru import logger as log
 
 
 class Habitue(commands.Cog):
-    rolename = "Les Habitués"
     category_role = "==COULEURS HABITUÉS=="
     habitue_colorname_template = "couleur {username}"
 
@@ -32,15 +32,14 @@ class Habitue(commands.Cog):
 
     def __init__(self, bot: ZORS):
         self.bot = bot
+        self.role_habitue: Role = bot.main_guild.get_role(settings.roles.leshabitues.id)
 
     @commands.Cog.listener()
     async def on_member_update(self, before: Member, after: Member):
-        if self.rolename not in str(before.roles) and self.rolename in str(after.roles):
+        if self.role_habitue not in before.roles and self.role_habitue in after.roles:
             log.info(f"{after.display_name} was given the habitue role")
             await self._add_habitue(after.guild, after)
-        elif self.rolename in str(before.roles) and self.rolename not in str(
-            after.roles
-        ):
+        elif self.role_habitue in before.roles and self.role_habitue not in after.roles:
             log.info(f"{after.display_name} was removed from the habitue role")
             await self._remove_habitue(after.guild, after)
 
@@ -63,7 +62,7 @@ class Habitue(commands.Cog):
     async def add_habitue_command(
         self, ctx: discord.ApplicationContext, member: Member, color: str | None = None
     ):
-        if self.rolename in str(member.roles):
+        if self.role_habitue in str(member.roles):
             log.error(f"{member.display_name} is already an habitue")
             await ctx.respond(f"{member.display_name} is already an habitue")
         else:
@@ -83,7 +82,7 @@ class Habitue(commands.Cog):
     async def remove_habitue_command(
         self, ctx: discord.ApplicationContext, member: Member
     ):
-        if self.rolename not in str(member.roles):
+        if self.role_habitue not in member.roles:
             log.error(f"{member.display_name} is not an habitue")
             await ctx.respond(f"{member.display_name} is not an habitue")
         else:
@@ -91,7 +90,7 @@ class Habitue(commands.Cog):
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
 
     @commands.slash_command(name="set_custom_color", description="Set your color.")
-    @commands.has_role(rolename)
+    @commands.has_role(settings.roles.leshabitues.id)
     @discord.option(
         name="red",
         description="The amount of red you want to set.",
@@ -134,7 +133,7 @@ class Habitue(commands.Cog):
     @commands.slash_command(
         name="set_color", description="Set your color from a list of predefined colors."
     )
-    @commands.has_role(rolename)
+    @commands.has_role(settings.roles.leshabitues.id)
     @discord.option(
         name="color",
         description="The color you want to set.",
@@ -159,7 +158,7 @@ class Habitue(commands.Cog):
             log.warning(
                 f"Role {self.habitue_colorname_template.format(username=member.display_name)} not found in the guild {member.guild.name}"
             )
-            if self.rolename in str(member.roles):
+            if self.role_habitue in member.roles:
                 log.warning(
                     f"{member.display_name} seems to be an habitue, creating the color role"
                 )
@@ -216,9 +215,9 @@ class Habitue(commands.Cog):
     async def _add_habitue(
         self, guild: Guild, member: Member, color: str | None = None
     ):
-        habitue_role: Role | None = discord.utils.get(guild.roles, name=self.rolename)
+        habitue_role: Role | None = discord.utils.get(guild.roles, name=self.role_habitue)
         if habitue_role is None:
-            log.error(f"Role {self.rolename} not found in the guild {guild.name}")
+            log.error(f"Role {self.role_habitue} not found in the guild {guild.name}")
             return
 
         try:
@@ -247,9 +246,9 @@ class Habitue(commands.Cog):
             log.error(f"Erreur Discord lors de l'ajout de l'habitué : {e}")
 
     async def _remove_habitue(self, guild: Guild, member: Member):
-        habitue_role: Role | None = discord.utils.get(guild.roles, name=self.rolename)
+        habitue_role: Role | None = discord.utils.get(guild.roles, name=self.role_habitue)
         if habitue_role is None:
-            log.error(f"Role {self.rolename} not found in the guild {guild.name}")
+            log.error(f"Role {self.role_habitue} not found in the guild {guild.name}")
             return
         color_role: Role | None = discord.utils.get(
             guild.roles,

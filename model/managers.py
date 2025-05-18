@@ -320,7 +320,6 @@ class PartyManager:
             await session.commit()
             owner: User | None = await UserManager.get_by_id(session, party.owner_id)
             if owner is not None:
-                owner = await UserManager.get_by_id(session, party.owner_id)
                 log.debug(f"DATABASE: Deleted party {party.name} owned by {owner.name}")
             else:
                 log.debug(

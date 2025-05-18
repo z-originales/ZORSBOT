@@ -1,11 +1,16 @@
+from typing import Any
+from typing import overload
+
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
     PydanticBaseSettingsSource,
     YamlConfigSettingsSource,
 )
-from pydantic import computed_field
+from pydantic import computed_field, Field, create_model, BaseModel, TypeAdapter, create_model
 from pathlib import Path
+from yaml import safe_load
+
 
 config_path = Path(__file__).parent / "config.yaml"
 dotenv_path = Path(__file__).parent.parent / ".env"
@@ -23,12 +28,12 @@ class Settings(BaseSettings):
     # endregion
 
     # region config.yaml
-    habitue_role_name: str
     log_level: str
     logs_path: Path
+    roles: Roles  # type: ignore[valid-type]
     # endregion
 
-    @computed_field
+    @computed_field  # type: ignore
     @property
     def postgres_url(self) -> str:
         """
@@ -69,6 +74,5 @@ class Settings(BaseSettings):
 
         """
         self.__init__()
-
 
 settings: Settings = Settings()  # type: ignore[attr-defined]
