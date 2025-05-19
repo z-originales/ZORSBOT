@@ -1,11 +1,11 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from model.schemas import Habitue, User, GameCategory, Party
+from model.schemas import Habitue, User, GameCategory, Party, Streamer
 import discord
 from loguru import logger as log
 
 
-class UserManager:
+class MemberManager:
     # region CRUD
     @classmethod
     async def add(cls, session: AsyncSession, member: discord.Member):
@@ -52,6 +52,43 @@ class UserManager:
     @classmethod
     async def delete_by_member(cls, session: AsyncSession, member: discord.Member):
         return await cls.delete(session, member.id)
+
+    # endregion
+
+    # region utility functions
+    @classmethod
+    async def sync_users(
+        cls, session: AsyncSession, members_ids: list[int], members_names: list[str]
+    ) -> list[int]:
+        """
+        Synchronise les utilisateurs dans la base de données.
+        Ajoute uniquement les membres qui n'existent pas encore.
+
+        Args:
+            session: La session de base de données
+            members_ids: Liste des IDs des membres à synchroniser
+            members_names: Liste des noms des membres à synchroniser (même ordre que members_ids)
+
+        Returns:
+            Une liste des indices des utilisateurs qui ont été ajoutés
+        """
+        if not members_ids or not members_names:
+            log.error("No members to sync.")
+            return []
+
+        added_users_indices = []
+        results = await session.exec(select(User))
+        users = results.all()
+        existing_user_ids = [user.id for user in users]
+
+        for idx, (member_id, member_name) in enumerate(zip(members_ids, members_names)):
+            if member_id not in existing_user_ids:
+                new_user = User(id=member_id, name=member_name)
+                session.add(new_user)
+                added_users_indices.append(idx)
+
+        await session.commit()
+        return added_users_indices
 
     # endregion
 
@@ -138,7 +175,104 @@ class HabitueManager:
             return None
         return await habitue.color_name  # needs to be awaited because it's a coroutine
 
+    @classmethod
+    async def sync_habitues(
+        cls,
+        session: AsyncSession,
+        members_ids: list[int],
+        members_with_habitue_role: list[bool],
+    ) -> list[int]:
+        """
+        Synchronise les habitués dans la base de données.
+        Ajoute uniquement les membres qui n'existent pas encore comme habitués.
+
+        Args:
+            session: La session de base de données
+            members_ids: Liste des IDs des membres à vérifier
+            members_with_habitue_role: Liste booléenne indiquant si le membre a le rôle habitué (même ordre que members_ids)
+
+        Returns:
+            Une liste des indices des habitués qui ont été ajoutés
+        """
+        added_habitues_indices = []
+        results = await session.exec(select(Habitue))
+        habitues = results.all()
+        existing_habitue_ids = [habitue.id for habitue in habitues]
+
+        for idx, (member_id, has_role) in enumerate(
+            zip(members_ids, members_with_habitue_role)
+        ):
+            if has_role and member_id not in existing_habitue_ids:
+                new_habitue = Habitue(id=member_id, color="#000000")
+                session.add(new_habitue)
+                added_habitues_indices.append(idx)
+
+        await session.commit()
+        return added_habitues_indices
+
     # endregion
+
+
+class StreamerManager:
+    """
+    Gestionnaire pour les entités Streamer dans la base de données.
+    """
+
+    @classmethod
+    async def add(
+        cls, session: AsyncSession, streamer_id: int, channel_tag: str | None = None
+    ):
+        """
+        Ajoute un streamer à la base de données.
+
+        Args:
+            session: La session de base de données
+            streamer_id: L'ID Discord du streamer
+            channel_tag: Tag optionnel pour le canal du streamer
+
+        Returns:
+            Le nouvel objet Streamer créé
+        """
+        new_streamer = Streamer(id=streamer_id, channel_tag=channel_tag)
+        session.add(new_streamer)
+        await session.commit()
+        log.debug(f"DATABASE: Added streamer {streamer_id}")
+        return new_streamer
+
+    @classmethod
+    async def sync_streamers(
+        cls,
+        session: AsyncSession,
+        members_ids: list[int],
+        members_with_streamer_role: list[bool],
+    ) -> list[int]:
+        """
+        Synchronise les streamers dans la base de données.
+        Ajoute uniquement les membres qui n'existent pas encore comme streamers.
+
+        Args:
+            session: La session de base de données
+            members_ids: Liste des IDs des membres à vérifier
+            members_with_streamer_role: Liste booléenne indiquant si le membre a le rôle streamer (même ordre que members_ids)
+
+        Returns:
+            Une liste des indices des streamers qui ont été ajoutés
+        """
+        added_streamers_indices = []
+        results = await session.exec(select(Streamer))
+        streamers = results.all()
+        existing_streamer_ids = [streamer.id for streamer in streamers]
+
+        for idx, (member_id, has_role) in enumerate(
+            zip(members_ids, members_with_streamer_role)
+        ):
+            if has_role and member_id not in existing_streamer_ids:
+                new_streamer = Streamer(id=member_id, channel_tag=None)
+                session.add(new_streamer)
+                added_streamers_indices.append(idx)
+
+        await session.commit()
+        return added_streamers_indices
 
 
 class GameCategoryManager:
@@ -318,7 +452,7 @@ class PartyManager:
         if party is not None:
             await session.delete(party)
             await session.commit()
-            owner: User | None = await UserManager.get_by_id(session, party.owner_id)
+            owner: User | None = await MemberManager.get_by_id(session, party.owner_id)
             if owner is not None:
                 log.debug(f"DATABASE: Deleted party {party.name} owned by {owner.name}")
             else:
