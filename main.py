@@ -10,7 +10,7 @@ from typing_extensions import override
 from utils import logger
 from loguru import logger as log
 from asyncio import run
-from config.settings import settings
+from utils.settings import settings
 from model.database import Database
 
 

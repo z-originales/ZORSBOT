@@ -3,7 +3,7 @@ import logging
 import sys
 from logging.config import fileConfig
 
-from config.settings import settings
+from utils.settings import settings
 from utils import logger
 from loguru import logger as log
 import inspect

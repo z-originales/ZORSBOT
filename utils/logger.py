@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 from loguru import logger
 from sys import stdout, stderr
-from config.settings import settings
+from utils.settings import settings
 
 _event_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</>"
 _issue_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</> | {file}:{line}"
