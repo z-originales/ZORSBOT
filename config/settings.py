@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     def reload_settings(self):
         """
         Reload the settings from the sources.
+        WARN: If you add a new role in the role list in the config.yaml file, you need to restart the bot. (because the model is created at runtime)
         Returns:
 
         """
