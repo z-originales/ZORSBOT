@@ -16,6 +16,7 @@ from utils.zors_cog import ZorsCog
 class Habitue(ZorsCog):
     category_role = "==COULEURS HABITUÉS=="
     habitue_colorname_template = "couleur {username}"
+    _processed_habitue: Member #TODO turn it into a set to handle multiple members being processed at the same time
 
     default_colors = {
         "blue": discord.Color.blue(),
@@ -38,6 +39,7 @@ class Habitue(ZorsCog):
     def __init__(self, bot: ZORS):
         self.bot = bot
 
+
     @cached_property
     def role_habitue(self) -> Role:
         role = discord.utils.get(
@@ -50,6 +52,9 @@ class Habitue(ZorsCog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: Member, after: Member):
+        if self._processed_habitue:
+            if before.id == self._processed_habitue.id:
+                return
         if self.role_habitue not in before.roles and self.role_habitue in after.roles:
             log.info(f"{after.display_name} was given the habitue role")
             await self._add_habitue(after.guild, after)
@@ -229,6 +234,7 @@ class Habitue(ZorsCog):
     async def _add_habitue(
         self, guild: Guild, member: Member, color: str | None = None
     ):
+        self._processed_habitue = member
         try:
             color_role = await self._create_color_role(guild, member.display_name)
             await member.add_roles(self.role_habitue, color_role)
@@ -254,7 +260,11 @@ class Habitue(ZorsCog):
         except discord.HTTPException as e:
             log.error(f"Erreur Discord lors de l'ajout de l'habitué : {e}")
 
+        finally:
+            self._processed_habitue = None
+
     async def _remove_habitue(self, guild: Guild, member: Member):
+        self._processed_habitue = member
         color_role: Role | None = discord.utils.get(
             guild.roles,
             name=self.habitue_colorname_template.format(username=member.display_name),
@@ -269,6 +279,7 @@ class Habitue(ZorsCog):
         async with self.bot.database.get_session() as session:
             await HabitueManager.delete_by_member(session, member)
         log.info(f"Removed habitue {member.display_name} from {guild.name}")
+        self._processed_habitue = None
 
     async def _create_color_role(self, guild: Guild, member_display_name: str) -> Role:
         """
