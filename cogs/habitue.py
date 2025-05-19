@@ -5,7 +5,7 @@ import discord
 from discord import Member, Guild, Role
 from discord.ext import commands
 
-from config.settings import settings
+from utils.settings import settings
 from main import ZORS
 from model.managers import HabitueManager
 from loguru import logger as log

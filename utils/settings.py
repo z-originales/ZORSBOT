@@ -1,5 +1,4 @@
 from typing import Any
-from typing import overload
 
 from pydantic_settings import (
     BaseSettings,
@@ -7,13 +6,36 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     YamlConfigSettingsSource,
 )
-from pydantic import computed_field, Field, create_model, BaseModel, TypeAdapter, create_model
+from pydantic import (
+    computed_field,
+    BaseModel,
+    create_model,
+)
 from pathlib import Path
 from yaml import safe_load
 
 
-config_path = Path(__file__).parent / "config.yaml"
+config_path = Path(__file__).parent.parent / "config" / "config.yaml"
 dotenv_path = Path(__file__).parent.parent / ".env"
+
+
+class Role(BaseModel):
+    id: int
+    permission: str
+
+
+def create_roles_model(data: dict[str, Any]) -> type[BaseModel]:
+    fields = {k: (Role, v) for k, v in data.items()}
+    return create_model("Roles", **fields)  # type: ignore[call-overload]
+
+
+def load_config() -> dict[str, Any]:
+    with config_path.open() as f:
+        return safe_load(f)
+
+
+config_data = load_config()
+Roles = create_roles_model(config_data.get("roles", {}))
 
 
 class Settings(BaseSettings):
@@ -77,5 +99,6 @@ class Settings(BaseSettings):
 
         """
         self.__init__()
+
 
 settings: Settings = Settings()  # type: ignore[attr-defined]

@@ -9,7 +9,7 @@ services:
     volumes:
         - ./runningbot/assets:/app/assets
         - ./runningbot/logs:/app/logs
-        - ./runningbot/config/config.yaml:/app/config/config.yaml:ro
+        - ./runningbot/config/:/app/config/:ro
     depends_on:
       database:
           condition: service_healthy
