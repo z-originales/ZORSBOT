@@ -14,17 +14,15 @@ _default_issue_level = settings.log_issue_level
 
 
 def setup_logger(
-    log_folder_path: Path,
-    event_level: str | None = None,
-    issue_level: str | None = None,
+    log_folder_path: Path = Path(settings.logs_path),
+    event_level: str = settings.log_event_level,
+    issue_level: str = settings.log_issue_level,
 ) -> None:
-    new_event_level = event_level or _default_event_level
-    new_issue_level = issue_level or _default_issue_level
     logger.remove()
-    add_event_console(new_event_level)
-    add_issue_console(new_issue_level)
-    add_event_log_file(new_event_level, log_folder_path)
-    add_issue_log_file(new_issue_level, log_folder_path)
+    add_event_console(event_level)
+    add_issue_console(issue_level)
+    add_event_log_file(event_level, log_folder_path)
+    add_issue_log_file(issue_level, log_folder_path)
     set_colors()
 
 

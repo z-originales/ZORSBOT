@@ -21,7 +21,6 @@ dotenv_path = Path(__file__).parent.parent / ".env"
 
 class Role(BaseModel):
     id: int
-    permission: str
 
 
 def create_roles_model(data: dict[str, Any]) -> type[BaseModel]:
