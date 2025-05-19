@@ -1,8 +1,10 @@
 import traceback
+from functools import cached_property
 from pathlib import Path
 
 
 import discord
+from discord import Guild
 from discord.ext import commands
 from typing_extensions import override
 
@@ -15,17 +17,14 @@ from model.database import Database
 
 class ZORS(commands.Bot):
     database: Database
-    main_guild: discord.Guild | None
 
     def __init__(self, *args, **kwargs):
         log.debug("ZORS bot is starting up...")
         super().__init__(*args, **kwargs)
         self.database = Database(str(settings.postgres_url))
-        self.main_guild = None
         log.info("Successfully connected to the database")
         log.trace("ZORS bot has been initialized.")
         log.info("Loading cogs...")
-        self._load_cogs()
 
     @classmethod
     async def create_bot(cls) -> "ZORS":
@@ -53,7 +52,16 @@ class ZORS(commands.Bot):
             help_command=None,
         )
         await bot.database.create_db_and_tables()
+        bot._load_cogs()
         return bot
+
+    @property
+    def main_guild(self) -> Guild:
+        guild = self.get_guild(settings.main_guild)
+        if guild is None:
+            log.error("Main guild not found.")
+            raise ValueError("Main guild not found.")
+        return guild
 
     @override
     async def start(self, *args, **kwargs) -> None:
@@ -63,7 +71,6 @@ class ZORS(commands.Bot):
 
         """
         await super().start(settings.discord_token, *args, **kwargs)
-
 
     def _load_cogs(self) -> None:
         """
