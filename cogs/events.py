@@ -3,8 +3,9 @@ from discord.ext import commands
 import discord
 
 from loguru import logger as log
-from model.managers import UserManager
+from model.managers import MemberManager
 from main import ZORS
+from utils.zors_cog import ZorsCog
 
 
 class Events(commands.Cog):
@@ -72,7 +73,7 @@ class Events(commands.Cog):
             log.debug(f"Member {member} is a bot, skipping.")
             return
         async with self.bot.database.get_session() as session:
-            await UserManager.add(session, member)
+            await MemberManager.add(session, member)
 
     @discord.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -81,7 +82,7 @@ class Events(commands.Cog):
             log.debug(f"Member {member} is a bot, skipping.")
             return
         async with self.bot.database.get_session() as session:
-            await UserManager.delete(session, member)
+            await MemberManager.delete(session, member)
 
 
 def setup(bot: ZORS):

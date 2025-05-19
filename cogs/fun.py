@@ -1,9 +1,10 @@
 import discord
 from discord.ext import commands
 from main import ZORS
+from utils.zors_cog import ZorsCog
 
 
-class Fun(commands.Cog):
+class Fun(ZorsCog):
     def __init__(self, bot: ZORS):
         self.bot = bot
 

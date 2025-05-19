@@ -1,3 +1,6 @@
+import asyncio
+from functools import cached_property
+
 import discord
 from discord import Member, Guild, Role
 from discord.ext import commands
@@ -7,8 +10,10 @@ from main import ZORS
 from model.managers import HabitueManager
 from loguru import logger as log
 
+from utils.zors_cog import ZorsCog
 
-class Habitue(commands.Cog):
+
+class Habitue(ZorsCog):
     category_role = "==COULEURS HABITUÉS=="
     habitue_colorname_template = "couleur {username}"
 
@@ -32,7 +37,16 @@ class Habitue(commands.Cog):
 
     def __init__(self, bot: ZORS):
         self.bot = bot
-        self.role_habitue: Role = bot.main_guild.get_role(settings.roles.leshabitues.id)
+
+    @cached_property
+    def role_habitue(self) -> Role:
+        role = discord.utils.get(
+            self.bot.main_guild.roles, id=settings.roles.lesHabitues.id
+        )
+        if role is None:
+            log.error("Role 'Les Habitués' not found in the guild.")
+            raise ValueError("Role 'Les Habitués' not found in the guild.")
+        return role
 
     @commands.Cog.listener()
     async def on_member_update(self, before: Member, after: Member):
@@ -62,7 +76,7 @@ class Habitue(commands.Cog):
     async def add_habitue_command(
         self, ctx: discord.ApplicationContext, member: Member, color: str | None = None
     ):
-        if self.role_habitue in str(member.roles):
+        if self.role_habitue in member.roles:
             log.error(f"{member.display_name} is already an habitue")
             await ctx.respond(f"{member.display_name} is already an habitue")
         else:
@@ -90,7 +104,7 @@ class Habitue(commands.Cog):
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
 
     @commands.slash_command(name="set_custom_color", description="Set your color.")
-    @commands.has_role(settings.roles.leshabitues.id)
+    @commands.has_role(settings.roles.lesHabitues.id)
     @discord.option(
         name="red",
         description="The amount of red you want to set.",
@@ -133,7 +147,7 @@ class Habitue(commands.Cog):
     @commands.slash_command(
         name="set_color", description="Set your color from a list of predefined colors."
     )
-    @commands.has_role(settings.roles.leshabitues.id)
+    @commands.has_role(settings.roles.lesHabitues.id)
     @discord.option(
         name="color",
         description="The color you want to set.",
@@ -215,14 +229,9 @@ class Habitue(commands.Cog):
     async def _add_habitue(
         self, guild: Guild, member: Member, color: str | None = None
     ):
-        habitue_role: Role | None = discord.utils.get(guild.roles, name=self.role_habitue)
-        if habitue_role is None:
-            log.error(f"Role {self.role_habitue} not found in the guild {guild.name}")
-            return
-
         try:
             color_role = await self._create_color_role(guild, member.display_name)
-            await member.add_roles(habitue_role, color_role)
+            await member.add_roles(self.role_habitue, color_role)
 
             async with self.bot.database.get_session() as session:
                 await HabitueManager.add(session, member, color)
@@ -232,7 +241,7 @@ class Habitue(commands.Cog):
         except ValueError as e:
             log.error(f"Erreur lors de la création du rôle de couleur : {e}")
             # Ajouter uniquement le rôle d'habitué, sans le rôle de couleur
-            await member.add_roles(habitue_role)
+            await member.add_roles(self.role_habitue)
             log.info(
                 f"Added habitue {member.display_name} to {guild.name} (without color role)"
             )
@@ -246,10 +255,6 @@ class Habitue(commands.Cog):
             log.error(f"Erreur Discord lors de l'ajout de l'habitué : {e}")
 
     async def _remove_habitue(self, guild: Guild, member: Member):
-        habitue_role: Role | None = discord.utils.get(guild.roles, name=self.role_habitue)
-        if habitue_role is None:
-            log.error(f"Role {self.role_habitue} not found in the guild {guild.name}")
-            return
         color_role: Role | None = discord.utils.get(
             guild.roles,
             name=self.habitue_colorname_template.format(username=member.display_name),
@@ -260,7 +265,7 @@ class Habitue(commands.Cog):
             )
             return
         await color_role.delete()
-        await member.remove_roles(habitue_role)
+        await member.remove_roles(self.role_habitue)
         async with self.bot.database.get_session() as session:
             await HabitueManager.delete_by_member(session, member)
         log.info(f"Removed habitue {member.display_name} from {guild.name}")
@@ -335,6 +340,31 @@ class Habitue(commands.Cog):
             raise
 
     # endregion
+
+    @override
+    async def checkup(self):
+        """
+        Checks for new habitues in the guild and adds them to the database.
+        Returns:
+        """
+        # Prepare the data for the manager (without passing Discord objects)
+        members = [member for member in self.bot.main_guild.members if not member.bot]
+        members_ids = [member.id for member in members]
+        members_with_role_habitue = [
+            "Les Habitués" in [role.name for role in member.roles] for member in members
+        ]
+        members_names = [member.name for member in members]
+
+        async with self.bot.database.get_session() as session:
+            added_indices = await HabitueManager.sync_habitues(
+                session, members_ids, members_with_role_habitue
+            )
+
+        # Retrieve the names of the added habitues
+        added_habitues = [members_names[idx] for idx in added_indices]
+
+        log.info(f"Added {len(added_habitues)} new habitues to the database.")
+        log.debug(f"New habitues: {added_habitues}")
 
 
 def setup(bot: ZORS):
