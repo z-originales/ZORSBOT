@@ -1,0 +1,6 @@
+log_level: DEBUG
+logs_path: logs/
+main_guild: <GUILD_ID>
+roles:
+  lesHabitues:
+    id: <Role_ID>

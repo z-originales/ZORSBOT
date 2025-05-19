@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # region config.yaml
     log_level: str
     logs_path: Path
+    main_guild: int
     roles: Roles  # type: ignore[valid-type]
     # endregion
 
