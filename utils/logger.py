@@ -9,17 +9,22 @@ _issue_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message
 _rotation_duration = "1 week"
 _retention_duration = "1 month"
 _compression_type = "gz"
-_default_event_level = settings.log_level
-_default_issue_level = "WARNING"
+_default_event_level = settings.log_event_level
+_default_issue_level = settings.log_issue_level
 
 
-def setup_logger(log_folder_path: Path, level: str | None = None) -> None:
-    new_level = level if level is not None else _default_event_level
+def setup_logger(
+    log_folder_path: Path,
+    event_level: str | None = None,
+    issue_level: str | None = None,
+) -> None:
+    new_event_level = event_level or _default_event_level
+    new_issue_level = issue_level or _default_issue_level
     logger.remove()
-    add_event_console(_default_event_level)
-    add_issue_console(_default_issue_level)
-    add_event_log_file(_default_event_level, log_folder_path)
-    add_issue_log_file(_default_issue_level, log_folder_path)
+    add_event_console(new_event_level)
+    add_issue_console(new_issue_level)
+    add_event_log_file(new_event_level, log_folder_path)
+    add_issue_log_file(new_issue_level, log_folder_path)
     set_colors()
 
 
