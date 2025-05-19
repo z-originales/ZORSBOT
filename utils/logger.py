@@ -2,17 +2,19 @@ from pathlib import Path
 import logging
 from loguru import logger
 from sys import stdout, stderr
+from config.settings import settings
 
 _event_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</>"
 _issue_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</> | {file}:{line}"
 _rotation_duration = "1 week"
 _retention_duration = "1 month"
 _compression_type = "gz"
-_default_event_level = "TRACE"
+_default_event_level = settings.log_level
 _default_issue_level = "WARNING"
 
 
-def setup_logger(log_folder_path: Path, level: str) -> None:
+def setup_logger(log_folder_path: Path, level: str | None = None) -> None:
+    new_level = level if level is not None else _default_event_level
     logger.remove()
     add_event_console(_default_event_level)
     add_issue_console(_default_issue_level)
