@@ -44,6 +44,7 @@ _*.md
 *.txt
 database/
 runningbot/
+config/config.yaml
 
 # Ignore all alembic files
 alembic/versions/*

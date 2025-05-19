@@ -1,10 +1,9 @@
-from discord.ext import commands
 from main import ZORS
 from typing import override
-from discord import ApplicationContext
 from loguru import logger as log
 from model.managers import MemberManager
 from utils.zors_cog import ZorsCog
+
 
 class Member(ZorsCog):
     def __init__(self, bot: ZORS):
