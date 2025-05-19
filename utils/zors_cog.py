@@ -1,7 +1,3 @@
-from collections.abc import Coroutine, Callable
-from typing import Any
-from inspect import isawaitable
-
 from discord.ext import commands
 from loguru import logger as log
 
