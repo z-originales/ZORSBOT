@@ -1,9 +1,9 @@
-import asyncio
 from functools import cached_property
 
 import discord
 from discord import Member, Guild, Role
 from discord.ext import commands
+from typing import override
 
 from utils.settings import settings
 from main import ZORS

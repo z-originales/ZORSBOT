@@ -8,7 +8,7 @@ from main import ZORS
 from utils.zors_cog import ZorsCog
 
 
-class Events(commands.Cog):
+class Events(ZorsCog):
     def __init__(self, bot: ZORS):
         self.bot = bot
         self.bot.before_invoke(self._log_every_command)
