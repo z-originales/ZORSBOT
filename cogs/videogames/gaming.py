@@ -11,8 +11,10 @@ from main import ZORS
 from model.managers import GameCategoryManager, PartyManager
 from model.schemas import GameCategory
 
+from utils.zors_cog import ZorsCog
 
-class Gaming(commands.Cog):
+
+class Gaming(ZorsCog):
     """
     Cog gérant les fonctionnalités liées aux jeux vidéo sur le serveur.
     Permet de créer des catégories de jeux avec des salons dédiés,
@@ -23,12 +25,13 @@ class Gaming(commands.Cog):
         self.bot = bot
 
     # region events
+
     @commands.Cog.listener()
     async def on_voice_state_update(  # may not be the good function
-        self,
-        member: Member,
-        before: discord.VoiceState,
-        after: discord.VoiceState,
+            self,
+            member: Member,
+            before: discord.VoiceState,
+            after: discord.VoiceState,
     ):
         """
         Gère la création et suppression des salons vocaux dynamiques pour les parties.
@@ -36,17 +39,6 @@ class Gaming(commands.Cog):
         """
         # Appel à la fonction qui gère la logique des parties
         await self.party_logic(member, before, after)
-
-    # check if a user is typing
-    @commands.Cog.listener()
-    async def on_typing(
-        self,
-        channel: GuildChannel,
-        user: Member,
-        when: datetime,
-    ):
-        log.debug(f"{user} is typing in {channel} at {when}")
-
     # endregion
 
     async def get_game_channel_associations(

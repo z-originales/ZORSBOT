@@ -16,7 +16,7 @@ from utils.zors_cog import ZorsCog
 class Habitue(ZorsCog):
     category_role = "==COULEURS HABITUÉS=="
     habitue_colorname_template = "couleur {username}"
-    _processed_habitue: Member  # TODO turn it into a set to handle multiple members being processed at the same time
+    _processed_habitue: Member | None = None  # TODO turn it into a set to handle multiple members being processed at the same time
 
     default_colors = {
         "blue": discord.Color.blue(),

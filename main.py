@@ -42,6 +42,7 @@ class ZORS(commands.Bot):
         zorsintents.reactions = True
         zorsintents.auto_moderation_configuration = True
         zorsintents.auto_moderation_execution = True
+        zorsintents.voice_states = True
 
         bot = ZORS(
             description="ZORS !",
