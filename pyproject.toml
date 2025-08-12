@@ -1,6 +1,6 @@
 [project]
 name = "zorsbot"
-version = "1.0.0"
+version = "1.0.1"
 description = "A discord bot for 'la bande s4' server"
 authors = [{ name = "ZEN" }, { name = "Anemys" }]
 requires-python = ">=3.13"
@@ -19,7 +19,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "mypy>=1.15.0",
+    "pyrefly>=0.28.1",
     "ruff>=0.9.4",
     "types-pyyaml>=6.0.12.20250516",
 ]
