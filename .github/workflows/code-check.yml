@@ -1,0 +1,35 @@
+name: Code Style Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install pyrefly ruff
+
+      - name: Run pyrefly (format)
+        run: pyrefly . --check > pyrefly_output.txt
+
+      - name: Run ruff (lint)
+        run: ruff check . --output-format text > ruff_output.txt
+
+      - name: Générer le rapport Markdown
+        run: |
+          python generate_report.py
+
+      - name: Ajouter le rapport au résumé
+        run: cat report.md >> $GITHUB_STEP_SUMMARY
