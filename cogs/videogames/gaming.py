@@ -26,10 +26,10 @@ class Gaming(ZorsCog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(  # may not be the good function
-            self,
-            member: Member,
-            before: discord.VoiceState,
-            after: discord.VoiceState,
+        self,
+        member: Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState,
     ):
         """
         Gère la création et suppression des salons vocaux dynamiques pour les parties.
@@ -37,6 +37,7 @@ class Gaming(ZorsCog):
         """
         # Appel à la fonction qui gère la logique des parties
         await self.party_logic(member, before, after)
+
     # endregion
 
     async def get_game_channel_associations(
@@ -133,10 +134,10 @@ class Gaming(ZorsCog):
         async with self.bot.database.get_session() as session:
             await GameCategoryManager.delete(session, int(game))
             await ctx.respond(
-                f"La catégorie de jeu {game_category.name.split()[-1]} a été supprimée."
+                f"La catégorie de jeu {game_category.name.removeprefix('> ')} a été supprimée."
             )
             log.info(
-                f"La catégorie de jeu {game_category.name.split()[-1]} a été supprimée."
+                f"La catégorie de jeu {game_category.name.removeprefix('> ')} a été supprimée."
             )
 
     async def party_logic(
