@@ -1,9 +1,7 @@
 import asyncio
-from datetime import datetime
 
 import discord
 from discord import CategoryChannel, Member, VoiceChannel
-from discord.abc import GuildChannel
 from discord.ext import commands
 from loguru import logger as log
 
