@@ -1,6 +1,6 @@
 [project]
 name = "zorsbot"
-version = "1.0.1"
+version = "1.0.2"
 description = "A discord bot for 'la bande s4' server"
 authors = [{ name = "ZEN" }, { name = "Anemys" }]
 requires-python = ">=3.13"
