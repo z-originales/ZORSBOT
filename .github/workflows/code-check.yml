@@ -1,0 +1,94 @@
+name: Code Style Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.capture_result.outputs.result }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: |
+          uv venv .venv --python=python3.13
+          source .venv/bin/activate
+          uv pip install --upgrade pip
+          uv pip sync pyproject.toml
+          uv pip install --system pyrefly
+
+      - name: Run Pyrefly Type Checker
+        id: run_check
+        continue-on-error: true   # run even if errors found
+        run: |
+          payload="$(pyrefly check --output-format=min-text)"
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$payload" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Capture output for report
+        id: capture_result
+        run: echo "result=${{ steps.run_check.outputs.result }}" >> $GITHUB_OUTPUT
+
+      - name: Fail if errors found
+        if: steps.run_check.outcome == 'failure'
+        run: exit 1
+
+  linter:
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.capture_result.outputs.result }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruff
+        uses: astral-sh/ruff-action@v3
+
+      - name: Run Ruff lint & autofix
+        id: run_lint
+        continue-on-error: true
+        run: |
+          output="$(ruff check --fix --output-format=github)"
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Format code
+        run: ruff format
+
+      - name: Capture output for report
+        id: capture_result
+        run: echo "result=${{ steps.run_lint.outputs.result }}" >> $GITHUB_OUTPUT
+
+      - name: Fail if errors found
+        if: steps.run_lint.outcome == 'failure'
+        run: exit 1
+
+  report:
+    runs-on: ubuntu-latest
+    needs: [typecheck, linter]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Markdown report
+        env:
+          PYREFLY_RESULT: ${{ needs.typecheck.outputs.result }}
+          RUFF_RESULT: ${{ needs.linter.outputs.result }}
+        run: python .github/scripts/generate_report.py
+      - name: Upload report to summary
+        run: cat report.md >> $GITHUB_STEP_SUMMARY
