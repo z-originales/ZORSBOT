@@ -26,7 +26,7 @@ def generate_pyrefly_summary(input_pyrefly_file: pathlib.Path, output_pyrefly_fi
     if total_errors == 0:
         summary = [
             "# Rapport Pyrefly ✅",
-            f"📄 Aucun problème détecté dans {len(files)} fichier(s)."
+            f"📄 Aucun problème détecté."
         ]
     else:
         error_types = dict(Counter(e['name'] for e in errors))
@@ -63,7 +63,7 @@ def generate_ruff_summary(input_ruff_file: pathlib.Path, output_ruff_file: pathl
     if total_errors == 0:
         summary = [
             "# Rapport Ruff ✅",
-            f"📄 Aucun problème détecté dans {len(files)} fichier(s)."
+            f"📄 Aucun problème détecté."
         ]
     else:
         summary = ["# Rapport Ruff ❌", f"\n📄 Fichiers concernés: {len(files)}",
