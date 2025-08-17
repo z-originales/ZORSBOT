@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync pyproject.toml
+          uv sync
 
       - name: Set up Ruff, lint & save JSON
         uses: astral-sh/ruff-action@v3
