@@ -105,9 +105,9 @@ if __name__ == '__main__':
         output_dir = output_file.parent
         if not output_dir.exists():
             print(f"Erreur: Le dossier de sortie '{output_dir}' n'existe pas.")
-            exit(-1)
+            exit(2)
 
     if args.command == 'pyrefly':
-        exit(generate_pyrefly_summary(input_file, output_file))
+        generate_pyrefly_summary(input_file, output_file)
     elif args.command == 'ruff':
-        exit(generate_ruff_summary(input_file,  output_file))
+        generate_ruff_summary(input_file,  output_file)
