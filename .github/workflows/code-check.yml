@@ -31,11 +31,11 @@ jobs:
 
       - name: Run Ruff lint & save JSON
         id: ruff_lint
-        continue-on-error: true
         run: |
           ruff check --fix --output-format=json -o ruff_report.json
 
       - name: Générer le résumé Markdown Ruff
+        if: always()
         run: |
           python .github/scripts/generate_summary.py ruff ruff_report.json --output ruff_summary.md
           cat ruff_summary.md >> $GITHUB_STEP_SUMMARY
@@ -77,6 +77,7 @@ jobs:
           pyrefly check --output-format=json -o pyrefly_report.json
 
       - name: Générer le résumé Markdown Pyrefly
+        if: always()
         run: |
           python .github/scripts/generate_summary.py pyrefly pyrefly_report.json --output pyrefly_summary.md
           cat pyrefly_summary.md >> $GITHUB_STEP_SUMMARY
