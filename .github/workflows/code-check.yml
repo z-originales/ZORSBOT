@@ -1,0 +1,87 @@
+name: Code Style Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: 'true'
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Set up Ruff, lint & save JSON
+        uses: astral-sh/ruff-action@v3
+        id: ruff_lint
+        with:
+          args: check --fix --output-format=json -o ruff_report.json
+          version-file: pyproject.toml
+
+      - name: Générer le résumé Markdown Ruff
+        if: always()
+        run: |
+          python .github/scripts/generate_summary.py ruff ruff_report.json --output ruff_summary.md
+          cat ruff_summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Ruff JSON artifact si erreurs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruff-errors
+          path: ruff_report.json
+          retention-days: 1
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: 'true'
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv pip install --system pyrefly
+
+      - name: Run Pyrefly Type Checker & save JSON
+        id: pyrefly_check
+        run: |
+          pyrefly check --output-format=json -o pyrefly_report.json
+
+      - name: Générer le résumé Markdown Pyrefly
+        if: always()
+        run: |
+          python .github/scripts/generate_summary.py pyrefly pyrefly_report.json --output pyrefly_summary.md
+          cat pyrefly_summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Pyrefly JSON artifact si erreurs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyrefly-errors
+          path: pyrefly_report.json
+          retention-days: 1
