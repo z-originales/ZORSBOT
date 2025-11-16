@@ -7,6 +7,10 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -22,7 +26,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          activate-environment: 'true'
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
         run: |
@@ -37,6 +42,7 @@ jobs:
 
       - name: Générer le résumé Markdown Ruff
         if: always()
+        continue-on-error: true
         run: |
           python .github/scripts/generate_summary.py ruff ruff_report.json --output ruff_summary.md
           cat ruff_summary.md >> $GITHUB_STEP_SUMMARY
@@ -63,7 +69,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          activate-environment: 'true'
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
         run: |
@@ -77,6 +84,7 @@ jobs:
 
       - name: Générer le résumé Markdown Pyrefly
         if: always()
+        continue-on-error: true
         run: |
           python .github/scripts/generate_summary.py pyrefly pyrefly_report.json --output pyrefly_summary.md
           cat pyrefly_summary.md >> $GITHUB_STEP_SUMMARY
