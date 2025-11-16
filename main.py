@@ -80,25 +80,23 @@ class ZORS(commands.Bot):
 
         """
         status = self.load_extensions("cogs", recursive=True, store=True)
-        if status is None:
+        if status is None or isinstance(status, list):
             log.debug("No cogs loaded.")
             return
-        for extension in status:
-            match status[extension]:
+        for extension, result in status.items():
+            match result:
                 case True:
                     log.debug(f"Loaded cog: {extension}")
-                case discord.ExtensionAlreadyLoaded:
-                    log.debug(f"Cog already loaded: {extension} - {status[extension]}")
-                case discord.ExtensionNotFound:
-                    log.error(f"Failed to load cog: {extension} - {status[extension]}")
-                case discord.NoEntryPointError:
-                    log.error(
-                        f"Cog has no setup function: {extension} - {status[extension]}"
-                    )
-                case discord.ExtensionFailed:
-                    log.error(f"Cog failed to load: {extension} - {status[extension]}")
+                case discord.ExtensionAlreadyLoaded():
+                    log.debug(f"Cog already loaded: {extension} - {result}")
+                case discord.ExtensionNotFound():
+                    log.error(f"Failed to load cog: {extension} - {result}")
+                case discord.NoEntryPointError():
+                    log.error(f"Cog has no setup function: {extension} - {result}")
+                case discord.ExtensionFailed():
+                    log.error(f"Cog failed to load: {extension} - {result}")
                 case _:
-                    log.error(f"Unknown error: {extension} - {status[extension]}")
+                    log.error(f"Unknown error: {extension} - {result}")
                     print(traceback.format_exc())
 
 

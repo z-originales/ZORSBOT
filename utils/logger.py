@@ -88,9 +88,13 @@ class _InterceptHandler(logging.Handler):
             level = record.levelno
 
         # Determine the call stack depth. This ensures that the log message points to the original source.
-        frame, depth = logging.currentframe(), 2
+        frame = logging.currentframe()
+        depth = 2
         while frame and frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back
+            next_frame = frame.f_back
+            if next_frame is None:
+                break
+            frame = next_frame
             depth += 1
 
         # Mark the record to prevent re-processing it

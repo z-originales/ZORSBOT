@@ -1,13 +1,15 @@
 import asyncio
 
 import discord
-from discord import CategoryChannel, Member, VoiceChannel
+from discord import CategoryChannel, Member, VoiceChannel, VoiceState
+from discord.abc import GuildChannel
 from discord.ext import commands
 from loguru import logger as log
 
 from main import ZORS
 from model.managers import GameCategoryManager, PartyManager
 from model.schemas import GameCategory
+from utils.settings import settings
 
 from utils.zors_cog import ZorsCog
 
@@ -19,6 +21,8 @@ class Gaming(ZorsCog):
     et gère des salons vocaux dynamiques pour les parties.
     """
 
+    category_role = "==RÔLES ACCES=="
+
     def __init__(self, bot: ZORS):
         self.bot = bot
 
@@ -28,8 +32,8 @@ class Gaming(ZorsCog):
     async def on_voice_state_update(  # may not be the good function
         self,
         member: Member,
-        before: discord.VoiceState,
-        after: discord.VoiceState,
+        before: VoiceState,
+        after: VoiceState,
     ):
         """
         Gère la création et suppression des salons vocaux dynamiques pour les parties.
@@ -71,6 +75,7 @@ class Gaming(ZorsCog):
         """
         Ajoute une catégorie de jeu au serveur avec ses salons dédiés.
         Crée une structure complète pour un jeu vidéo (forums, chat, salon vocal).
+        Crée aussi un rôle Discord associé à la catégorie.
         """
         main_game_category: CategoryChannel | None = discord.utils.get(
             ctx.guild.categories, name="🎮 [Jeux]"
@@ -89,7 +94,25 @@ class Gaming(ZorsCog):
         game_text = await game_category.create_text_channel("Chat")
         game_voice = await game_category.create_voice_channel("➕Add Party")
 
-        # Enregistrement en base de données
+        # Création du rôle Discord associé à la catégorie
+        game_role = await ctx.guild.create_role(name=f"{game}", mentionable=True)
+
+        # Configuration des permissions de la catégorie
+        await game_category.set_permissions(
+            ctx.guild.default_role,  # @everyone
+            view_channel=False,  # Invisible par défaut
+            read_messages=False,
+        )
+        await game_category.set_permissions(
+            game_role,  # Le rôle du jeu
+            view_channel=True,  # Visible pour ceux qui ont le rôle
+            read_messages=True,
+            send_messages=True,
+            connect=True,
+            speak=True,
+        )
+
+        # Enregistrement en base de données avec l'ID du rôle
         async with self.bot.database.get_session() as session:
             await GameCategoryManager.add(
                 session,
@@ -98,10 +121,17 @@ class Gaming(ZorsCog):
                 game_forum.id,
                 game_text.id,
                 game_voice.id,
+                game_role.id,  # Ajout de l'ID du rôle
             )
 
-        await ctx.respond(f"La catégorie de jeu {game} a été ajoutée.")
-        log.info(f"La catégorie de jeu {game} a été ajoutée.")
+        await ctx.respond(
+            f"La catégorie de jeu {game} a été ajoutée avec le rôle associé. "
+            f"Utilisez `/join_game` pour y accéder."
+        )
+        log.info(
+            f"La catégorie de jeu {game} a été ajoutée avec le rôle {game_role.name} "
+            f"et permissions configurées."
+        )
 
     @commands.slash_command(
         name="delete_game", description="Supprime un jeu du serveur."
@@ -115,6 +145,7 @@ class Gaming(ZorsCog):
     async def delete_game(self, ctx: discord.ApplicationContext, game: str):
         """
         Supprime une catégorie de jeu du serveur et tous ses salons associés.
+        Supprime aussi le rôle Discord associé à la catégorie.
         Nettoie également les données du jeu dans la base de données.
         """
         game_category: CategoryChannel | None = discord.utils.get(
@@ -130,15 +161,109 @@ class Gaming(ZorsCog):
             await channel.delete()
         await game_category.delete()
 
-        # Suppression des données en base
+        # Suppression du rôle associé à la catégorie
         async with self.bot.database.get_session() as session:
+            # Récupérer la catégorie en base pour obtenir l'ID du rôle
+            db_category = await GameCategoryManager.get_by_id(session, int(game))
+            if db_category and db_category.role_id:
+                role = ctx.guild.get_role(db_category.role_id)
+                if role:
+                    await role.delete(reason="Suppression de la catégorie de jeu")
+                    log.info(f"Rôle {role.name} supprimé avec la catégorie.")
+
+            # Suppression des données en base
             await GameCategoryManager.delete(session, int(game))
             await ctx.respond(
-                f"La catégorie de jeu {game_category.name.removeprefix('> ')} a été supprimée."
+                f"La catégorie de jeu {game_category.name.removeprefix('> ')} et son rôle ont été supprimés."
             )
             log.info(
-                f"La catégorie de jeu {game_category.name.removeprefix('> ')} a été supprimée."
+                f"La catégorie de jeu {game_category.name.removeprefix('> ')} et son rôle ont été supprimés."
             )
+
+    @commands.slash_command(
+        name="join_game", description="Rejoindre un jeu pour voir ses salons."
+    )
+    @commands.has_role(settings.roles.gamer.id)
+    @discord.option(
+        name="game",
+        description="Le jeu à rejoindre.",
+        autocomplete=get_game_channel_associations,
+    )
+    async def join_game(self, ctx: discord.ApplicationContext, game: str):
+        """Permet à un utilisateur de rejoindre un jeu et d'obtenir accès aux salons."""
+        if not isinstance(ctx.author, Member):
+            await ctx.respond(
+                "Cette commande doit être utilisée dans un serveur.", ephemeral=True
+            )
+            return
+
+        async with self.bot.database.get_session() as session:
+            game_category = await GameCategoryManager.get_by_id(session, int(game))
+            if not game_category:
+                await ctx.respond("Ce jeu n'existe pas.", ephemeral=True)
+                return
+
+            role = ctx.guild.get_role(game_category.role_id)
+            if not role:
+                await ctx.respond("Le rôle de ce jeu est introuvable.", ephemeral=True)
+                log.error(
+                    f"Rôle {game_category.role_id} introuvable pour {game_category.name}"
+                )
+                return
+
+            if role in ctx.author.roles:
+                await ctx.respond(
+                    f"Vous avez déjà accès à {game_category.name}.", ephemeral=True
+                )
+                return
+
+            await ctx.author.add_roles(role, reason="Rejoint le jeu via /join_game")
+            await ctx.respond(
+                f"Vous avez rejoint {game_category.name} ! 🎮", ephemeral=True
+            )
+            log.info(f"{ctx.author.display_name} a rejoint {game_category.name}")
+
+    @commands.slash_command(
+        name="leave_game",
+        description="Quitter un jeu et perdre l'accès à ses salons.",
+    )
+    @commands.has_role(settings.roles.gamer.id)
+    @discord.option(
+        name="game",
+        description="Le jeu à quitter.",
+        autocomplete=get_game_channel_associations,
+    )
+    async def leave_game(self, ctx: discord.ApplicationContext, game: str):
+        """Permet à un utilisateur de quitter un jeu et de perdre l'accès aux salons."""
+        if not isinstance(ctx.author, Member):
+            await ctx.respond(
+                "Cette commande doit être utilisée dans un serveur.", ephemeral=True
+            )
+            return
+
+        async with self.bot.database.get_session() as session:
+            game_category = await GameCategoryManager.get_by_id(session, int(game))
+            if not game_category:
+                await ctx.respond("Ce jeu n'existe pas.", ephemeral=True)
+                return
+
+            role = ctx.guild.get_role(game_category.role_id)
+            if not role:
+                await ctx.respond("Le rôle de ce jeu est introuvable.", ephemeral=True)
+                log.error(
+                    f"Rôle {game_category.role_id} introuvable pour {game_category.name}"
+                )
+                return
+
+            if role not in ctx.author.roles:
+                await ctx.respond(
+                    f"Vous n'avez pas accès à {game_category.name}.", ephemeral=True
+                )
+                return
+
+            await ctx.author.remove_roles(role, reason="Quitté le jeu via /leave_game")
+            await ctx.respond(f"Vous avez quitté {game_category.name}.", ephemeral=True)
+            log.info(f"{ctx.author.display_name} a quitté {game_category.name}")
 
     async def party_logic(
         self,
@@ -153,6 +278,7 @@ class Gaming(ZorsCog):
         """
         # Création d'un salon temporaire
         if before.channel != after.channel and after.channel is not None:
+            after_channel = after.channel  # Type narrowing helper
             async with self.bot.database.get_session() as session:
                 # Vérifier si le salon rejoint est un salon "Add Party"
                 game_categories: list[GameCategory] = await GameCategoryManager.get_all(
@@ -160,7 +286,7 @@ class Gaming(ZorsCog):
                 )
 
                 for game_category in game_categories:
-                    if after.channel.id == game_category.voice_id:
+                    if after_channel.id == game_category.voice_id:
                         # Récupérer les parties de l'utilisateur
                         user_parties = await PartyManager.get_by_owner(
                             session, member.id
@@ -178,10 +304,10 @@ class Gaming(ZorsCog):
 
                         if existing_party:
                             # Utiliser la partie existante
-                            channel: VoiceChannel = self.bot.get_channel(
-                                existing_party.channel_id
-                            )
-                            if channel:
+                            channel = self.bot.get_channel(existing_party.channel_id)
+                            if channel and isinstance(
+                                channel, (VoiceChannel, discord.StageChannel)
+                            ):
                                 await member.move_to(channel)
                                 log.info(
                                     f"Déplacement de {member.display_name} vers sa partie existante"
@@ -194,7 +320,7 @@ class Gaming(ZorsCog):
                                 )
 
                         # Créer un nouveau salon vocal
-                        category = after.channel.category
+                        category = after_channel.category
                         if isinstance(category, CategoryChannel):
                             party_name = f"{member.display_name}-party"
                             new_channel = await category.create_voice_channel(

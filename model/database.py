@@ -2,6 +2,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import SQLModel
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from utils.singletonmeta import SingletonMeta
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
 
 
 class Database(metaclass=SingletonMeta):
@@ -15,5 +17,14 @@ class Database(metaclass=SingletonMeta):
         async with self.engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
-    def get_session(self) -> AsyncSession:
-        return self.sessionmaker()
+    @asynccontextmanager
+    async def get_session(self) -> AsyncIterator[AsyncSession]:
+        session = self.sessionmaker()
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
