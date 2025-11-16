@@ -124,7 +124,8 @@ class Gaming(ZorsCog):
             )
 
         await ctx.respond(
-            f"La catégorie de jeu {game} a été ajoutée avec le rôle associé."
+            f"La catégorie de jeu {game} a été ajoutée avec le rôle associé. "
+            f"Utilisez `/join_game` pour y accéder."
         )
         log.info(
             f"La catégorie de jeu {game} a été ajoutée avec le rôle {game_role.name} "
@@ -177,6 +178,77 @@ class Gaming(ZorsCog):
             log.info(
                 f"La catégorie de jeu {game_category.name.removeprefix('> ')} et son rôle ont été supprimés."
             )
+
+    @commands.slash_command(
+        name="join_game", description="Rejoindre un jeu pour voir ses salons."
+    )
+    @discord.option(
+        name="game",
+        description="Le jeu à rejoindre.",
+        autocomplete=get_game_channel_associations,
+    )
+    async def join_game(self, ctx: discord.ApplicationContext, game: str):
+        """Permet à un utilisateur de rejoindre un jeu et d'obtenir accès aux salons."""
+        async with self.bot.database.get_session() as session:
+            game_category = await GameCategoryManager.get_by_id(session, int(game))
+            if not game_category:
+                await ctx.respond("Ce jeu n'existe pas.", ephemeral=True)
+                return
+
+            role = ctx.guild.get_role(game_category.role_id)
+            if not role:
+                await ctx.respond("Le rôle de ce jeu est introuvable.", ephemeral=True)
+                log.error(
+                    f"Rôle {game_category.role_id} introuvable pour {game_category.name}"
+                )
+                return
+
+            if role in ctx.author.roles:
+                await ctx.respond(
+                    f"Vous avez déjà accès à {game_category.name}.", ephemeral=True
+                )
+                return
+
+            await ctx.author.add_roles(role, reason="Rejoint le jeu via /join_game")
+            await ctx.respond(
+                f"Vous avez rejoint {game_category.name} ! 🎮", ephemeral=True
+            )
+            log.info(f"{ctx.author.display_name} a rejoint {game_category.name}")
+
+    @commands.slash_command(
+        name="leave_game",
+        description="Quitter un jeu et perdre l'accès à ses salons.",
+    )
+    @discord.option(
+        name="game",
+        description="Le jeu à quitter.",
+        autocomplete=get_game_channel_associations,
+    )
+    async def leave_game(self, ctx: discord.ApplicationContext, game: str):
+        """Permet à un utilisateur de quitter un jeu et de perdre l'accès aux salons."""
+        async with self.bot.database.get_session() as session:
+            game_category = await GameCategoryManager.get_by_id(session, int(game))
+            if not game_category:
+                await ctx.respond("Ce jeu n'existe pas.", ephemeral=True)
+                return
+
+            role = ctx.guild.get_role(game_category.role_id)
+            if not role:
+                await ctx.respond("Le rôle de ce jeu est introuvable.", ephemeral=True)
+                log.error(
+                    f"Rôle {game_category.role_id} introuvable pour {game_category.name}"
+                )
+                return
+
+            if role not in ctx.author.roles:
+                await ctx.respond(
+                    f"Vous n'avez pas accès à {game_category.name}.", ephemeral=True
+                )
+                return
+
+            await ctx.author.remove_roles(role, reason="Quitté le jeu via /leave_game")
+            await ctx.respond(f"Vous avez quitté {game_category.name}.", ephemeral=True)
+            log.info(f"{ctx.author.display_name} a quitté {game_category.name}")
 
     async def party_logic(
         self,
