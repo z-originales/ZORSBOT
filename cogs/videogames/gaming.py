@@ -1,7 +1,8 @@
 import asyncio
 
 import discord
-from discord import CategoryChannel, Member, VoiceChannel
+from discord import CategoryChannel, Member, VoiceChannel, VoiceState
+from discord.abc import GuildChannel
 from discord.ext import commands
 from loguru import logger as log
 
@@ -19,6 +20,8 @@ class Gaming(ZorsCog):
     et gère des salons vocaux dynamiques pour les parties.
     """
 
+    category_role = "==RÔLES ACCES=="
+
     def __init__(self, bot: ZORS):
         self.bot = bot
 
@@ -28,8 +31,8 @@ class Gaming(ZorsCog):
     async def on_voice_state_update(  # may not be the good function
         self,
         member: Member,
-        before: discord.VoiceState,
-        after: discord.VoiceState,
+        before: VoiceState,
+        after: VoiceState,
     ):
         """
         Gère la création et suppression des salons vocaux dynamiques pour les parties.
@@ -71,6 +74,7 @@ class Gaming(ZorsCog):
         """
         Ajoute une catégorie de jeu au serveur avec ses salons dédiés.
         Crée une structure complète pour un jeu vidéo (forums, chat, salon vocal).
+        Crée aussi un rôle Discord associé à la catégorie.
         """
         main_game_category: CategoryChannel | None = discord.utils.get(
             ctx.guild.categories, name="🎮 [Jeux]"
@@ -89,7 +93,25 @@ class Gaming(ZorsCog):
         game_text = await game_category.create_text_channel("Chat")
         game_voice = await game_category.create_voice_channel("➕Add Party")
 
-        # Enregistrement en base de données
+        # Création du rôle Discord associé à la catégorie
+        game_role = await ctx.guild.create_role(name=f"{game}", mentionable=True)
+
+        # Configuration des permissions de la catégorie
+        await game_category.set_permissions(
+            ctx.guild.default_role,  # @everyone
+            view_channel=False,  # Invisible par défaut
+            read_messages=False,
+        )
+        await game_category.set_permissions(
+            game_role,  # Le rôle du jeu
+            view_channel=True,  # Visible pour ceux qui ont le rôle
+            read_messages=True,
+            send_messages=True,
+            connect=True,
+            speak=True,
+        )
+
+        # Enregistrement en base de données avec l'ID du rôle
         async with self.bot.database.get_session() as session:
             await GameCategoryManager.add(
                 session,
@@ -98,10 +120,16 @@ class Gaming(ZorsCog):
                 game_forum.id,
                 game_text.id,
                 game_voice.id,
+                game_role.id,  # Ajout de l'ID du rôle
             )
 
-        await ctx.respond(f"La catégorie de jeu {game} a été ajoutée.")
-        log.info(f"La catégorie de jeu {game} a été ajoutée.")
+        await ctx.respond(
+            f"La catégorie de jeu {game} a été ajoutée avec le rôle associé."
+        )
+        log.info(
+            f"La catégorie de jeu {game} a été ajoutée avec le rôle {game_role.name} "
+            f"et permissions configurées."
+        )
 
     @commands.slash_command(
         name="delete_game", description="Supprime un jeu du serveur."
@@ -115,6 +143,7 @@ class Gaming(ZorsCog):
     async def delete_game(self, ctx: discord.ApplicationContext, game: str):
         """
         Supprime une catégorie de jeu du serveur et tous ses salons associés.
+        Supprime aussi le rôle Discord associé à la catégorie.
         Nettoie également les données du jeu dans la base de données.
         """
         game_category: CategoryChannel | None = discord.utils.get(
@@ -130,14 +159,23 @@ class Gaming(ZorsCog):
             await channel.delete()
         await game_category.delete()
 
-        # Suppression des données en base
+        # Suppression du rôle associé à la catégorie
         async with self.bot.database.get_session() as session:
+            # Récupérer la catégorie en base pour obtenir l'ID du rôle
+            db_category = await GameCategoryManager.get_by_id(session, int(game))
+            if db_category and db_category.role_id:
+                role = ctx.guild.get_role(db_category.role_id)
+                if role:
+                    await role.delete(reason="Suppression de la catégorie de jeu")
+                    log.info(f"Rôle {role.name} supprimé avec la catégorie.")
+
+            # Suppression des données en base
             await GameCategoryManager.delete(session, int(game))
             await ctx.respond(
-                f"La catégorie de jeu {game_category.name.removeprefix('> ')} a été supprimée."
+                f"La catégorie de jeu {game_category.name.removeprefix('> ')} et son rôle ont été supprimés."
             )
             log.info(
-                f"La catégorie de jeu {game_category.name.removeprefix('> ')} a été supprimée."
+                f"La catégorie de jeu {game_category.name.removeprefix('> ')} et son rôle ont été supprimés."
             )
 
     async def party_logic(
@@ -178,7 +216,7 @@ class Gaming(ZorsCog):
 
                         if existing_party:
                             # Utiliser la partie existante
-                            channel: VoiceChannel = self.bot.get_channel(
+                            channel: VoiceChannel | GuildChannel = self.bot.get_channel(
                                 existing_party.channel_id
                             )
                             if channel:
