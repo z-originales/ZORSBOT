@@ -31,8 +31,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages]
 find = { }
 
-[tool.mypy]
-plugins = ['pydantic.mypy']
 
 [tool.bumpversion]
 current_version = "1.0.2"
@@ -55,3 +53,12 @@ commit_args = ""
 setup_hooks = []
 pre_commit_hooks = []
 post_commit_hooks = []
+
+[tool.pyrefly]
+python_interpreter = ".venv/bin/python"
+project-includes = ["**/*"]
+project-excludes = [
+    "**/node_modules",
+    "**/__pycache__",
+    '**/*venv/**',
+]
