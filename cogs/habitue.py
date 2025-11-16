@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import cast
 
 import discord
 from discord import Member, Guild, Role
@@ -12,29 +13,30 @@ from loguru import logger as log
 
 from utils.zors_cog import ZorsCog
 
+# Define default colors at module level for decorator access
+default_colors = {
+    "blue": discord.Color.blue(),
+    "blurple": discord.Color.blurple(),
+    "fuchsia": discord.Color.fuchsia(),
+    "gold": discord.Color.gold(),
+    "green": discord.Color.green(),
+    "greyple": discord.Color.greyple(),
+    "magenta": discord.Color.magenta(),
+    "og_blurple": discord.Color.blurple(),
+    "orange": discord.Color.orange(),
+    "purple": discord.Color.purple(),
+    "red": discord.Color.red(),
+    "teal": discord.Color.teal(),
+    "yellow": discord.Color.yellow(),
+}
+
 
 class Habitue(ZorsCog):
     category_role = "==COULEURS HABITUÉS=="
     habitue_colorname_template = "couleur {username}"
-    _processed_habitue: Member | None = None  # TODO turn it into a set to handle multiple members being processed at the same time
-
-    default_colors = {
-        "blue": discord.Color.blue(),
-        "blurple": discord.Color.blurple(),
-        "fuchsia": discord.Color.fuchsia(),
-        "gold": discord.Color.gold(),
-        "green": discord.Color.green(),
-        "greyple": discord.Color.greyple(),
-        "magenta": discord.Color.magenta(),
-        "og_blurple": discord.Color.blurple(),
-        "orange": discord.Color.orange(),
-        "purple": discord.Color.purple(),
-        "red": discord.Color.red(),
-        "teal": discord.Color.teal(),
-        "yellow": discord.Color.yellow(),
-    }
-
-    default_colors_list = [el for el in default_colors.keys()]
+    _processed_habitue: Member | None = (
+        None  # TODO turn it into a set to handle multiple members being processed at the same time
+    )
 
     def __init__(self, bot: ZORS):
         self.bot = bot
@@ -157,10 +159,10 @@ class Habitue(ZorsCog):
         description="The color you want to set.",
         type=str,
         required=True,
-        choices=default_colors_list,
+        choices=list(default_colors.keys()),
     )
     async def set_color(self, ctx: discord.ApplicationContext, color: str):
-        r, g, b = self.default_colors[color].to_rgb()
+        r, g, b = default_colors[color].to_rgb()
         await self._update_user_color(ctx.user, r, g, b)
         await ctx.respond(f"Your color has been set to {color}.")
 
@@ -184,7 +186,7 @@ class Habitue(ZorsCog):
                     role = await self._create_color_role(
                         member.guild, member.display_name
                     )
-                    await member.add_roles(role)
+                    await member.add_roles(cast(discord.abc.Snowflake, role))
                 except ValueError as e:
                     log.error(f"Erreur lors de la création du rôle de couleur : {e}")
                     raise ValueError(
@@ -236,7 +238,10 @@ class Habitue(ZorsCog):
         self._processed_habitue = member
         try:
             color_role = await self._create_color_role(guild, member.display_name)
-            await member.add_roles(self.role_habitue, color_role)
+            await member.add_roles(
+                cast(discord.abc.Snowflake, self.role_habitue),
+                cast(discord.abc.Snowflake, color_role),
+            )
 
             async with self.bot.database.get_session() as session:
                 await HabitueManager.add(session, member, color)
@@ -246,7 +251,7 @@ class Habitue(ZorsCog):
         except ValueError as e:
             log.error(f"Erreur lors de la création du rôle de couleur : {e}")
             # Ajouter uniquement le rôle d'habitué, sans le rôle de couleur
-            await member.add_roles(self.role_habitue)
+            await member.add_roles(cast(discord.abc.Snowflake, self.role_habitue))
             log.info(
                 f"Added habitue {member.display_name} to {guild.name} (without color role)"
             )
@@ -274,7 +279,7 @@ class Habitue(ZorsCog):
             )
             return
         await color_role.delete()
-        await member.remove_roles(self.role_habitue)
+        await member.remove_roles(cast(discord.abc.Snowflake, self.role_habitue))
         async with self.bot.database.get_session() as session:
             await HabitueManager.delete_by_member(session, member)
         log.info(f"Removed habitue {member.display_name} from {guild.name}")
