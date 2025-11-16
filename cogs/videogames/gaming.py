@@ -191,6 +191,12 @@ class Gaming(ZorsCog):
     )
     async def join_game(self, ctx: discord.ApplicationContext, game: str):
         """Permet à un utilisateur de rejoindre un jeu et d'obtenir accès aux salons."""
+        if not isinstance(ctx.author, Member):
+            await ctx.respond(
+                "Cette commande doit être utilisée dans un serveur.", ephemeral=True
+            )
+            return
+
         async with self.bot.database.get_session() as session:
             game_category = await GameCategoryManager.get_by_id(session, int(game))
             if not game_category:
@@ -229,6 +235,12 @@ class Gaming(ZorsCog):
     )
     async def leave_game(self, ctx: discord.ApplicationContext, game: str):
         """Permet à un utilisateur de quitter un jeu et de perdre l'accès aux salons."""
+        if not isinstance(ctx.author, Member):
+            await ctx.respond(
+                "Cette commande doit être utilisée dans un serveur.", ephemeral=True
+            )
+            return
+
         async with self.bot.database.get_session() as session:
             game_category = await GameCategoryManager.get_by_id(session, int(game))
             if not game_category:
@@ -266,6 +278,7 @@ class Gaming(ZorsCog):
         """
         # Création d'un salon temporaire
         if before.channel != after.channel and after.channel is not None:
+            after_channel = after.channel  # Type narrowing helper
             async with self.bot.database.get_session() as session:
                 # Vérifier si le salon rejoint est un salon "Add Party"
                 game_categories: list[GameCategory] = await GameCategoryManager.get_all(
@@ -273,7 +286,7 @@ class Gaming(ZorsCog):
                 )
 
                 for game_category in game_categories:
-                    if after.channel.id == game_category.voice_id:
+                    if after_channel.id == game_category.voice_id:
                         # Récupérer les parties de l'utilisateur
                         user_parties = await PartyManager.get_by_owner(
                             session, member.id
@@ -291,10 +304,10 @@ class Gaming(ZorsCog):
 
                         if existing_party:
                             # Utiliser la partie existante
-                            channel: VoiceChannel | GuildChannel = self.bot.get_channel(
-                                existing_party.channel_id
-                            )
-                            if channel:
+                            channel = self.bot.get_channel(existing_party.channel_id)
+                            if channel and isinstance(
+                                channel, (VoiceChannel, discord.StageChannel)
+                            ):
                                 await member.move_to(channel)
                                 log.info(
                                     f"Déplacement de {member.display_name} vers sa partie existante"
@@ -307,7 +320,7 @@ class Gaming(ZorsCog):
                                 )
 
                         # Créer un nouveau salon vocal
-                        category = after.channel.category
+                        category = after_channel.category
                         if isinstance(category, CategoryChannel):
                             party_name = f"{member.display_name}-party"
                             new_channel = await category.create_voice_channel(
