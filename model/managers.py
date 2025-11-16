@@ -286,6 +286,7 @@ class GameCategoryManager:
         forum_id: int,
         text_id: int,
         voice_id: int,
+        role_id: int,
     ):
         new_game_category = GameCategory(
             id=category_id,
@@ -293,6 +294,7 @@ class GameCategoryManager:
             forum_id=forum_id,
             text_id=text_id,
             voice_id=voice_id,
+            role_id=role_id,
         )
         session.add(new_game_category)
         await session.commit()

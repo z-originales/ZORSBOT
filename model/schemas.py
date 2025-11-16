@@ -78,6 +78,7 @@ class GameCategory(SQLModel, table=True):
     forum_id: int = Field(sa_type=BigInteger)
     text_id: int = Field(sa_type=BigInteger)
     voice_id: int = Field(sa_type=BigInteger)
+    role_id: int = Field(sa_type=BigInteger)
 
     parties: list["Party"] = Relationship(
         back_populates="game_category",
