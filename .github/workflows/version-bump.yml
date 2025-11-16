@@ -9,24 +9,74 @@ on:
         default: 'patch'
         type: choice
         options:
-        - major
-        - minor
-        - patch
+          - major
+          - minor
+          - patch
 
 jobs:
-  build:
+  bump-version:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout the code
-        uses: actions/checkout@v4
-
-      - name: Bump version
-        id: bump
-        uses: callowayproject/bump-my-version@master
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          args: ${{ inputs.bump-type }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          ssh-private-key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
 
+      - name: Checkout code via SSH
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.DEPLOY_PRIVATE_KEY }}   # switch to SSH
+          persist-credentials: false                    # disable default token creds
+
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+      - name: Checkout the code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setting up git config
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
+          git config --global user.name "$(gh api /users/${GITHUB_ACTOR} | jq .name -r)"
+          git config -l
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.9"
+
+      - name: Install bump-my-version
+        shell: bash
+        run: uv tool install bump-my-version==1.2.4
+
+      - name: Pass Inputs to Shell
+        id: bump
+        shell: bash
+        run: |
+          echo "previous-version=$(bump-my-version show current_version)" >> $GITHUB_OUTPUT
+
+          bump-my-version bump ${{ inputs.bump-type }}
+          ([[ $? -gt 0 ]] && echo "bumped=false" || echo "bumped=true") >> $GITHUB_OUTPUT
+          echo "current-version=$(bump-my-version show current_version)" >> $GITHUB_OUTPUT
+
+      - name: Push changes to GitHub
+        uses: ad-m/github-push-action@master
+        with:
+          ssh: true
+          branch: ${{ github.base_ref }}
+      
       - name: Check
         if: steps.bump.outputs.bumped == 'true'
         run: |
