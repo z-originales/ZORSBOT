@@ -82,7 +82,7 @@ class Events(ZorsCog):
             log.debug(f"Member {member} is a bot, skipping.")
             return
         async with self.bot.database.get_session() as session:
-            await MemberManager.delete(session, member)
+            await MemberManager.delete(session, member.id)
 
 
 def setup(bot: ZORS):

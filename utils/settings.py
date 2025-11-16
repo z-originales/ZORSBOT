@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic_settings import (
     BaseSettings,
@@ -23,9 +23,16 @@ class Role(BaseModel):
     id: int
 
 
+class RolesProtocol(Protocol):
+    """Protocol defining the expected roles in config.yaml"""
+
+    lesHabitues: Role
+    gamer: Role
+
+
 def create_roles_model(data: dict[str, Any]) -> type[BaseModel]:
-    fields = {k: (Role, v) for k, v in data.items()}
-    return create_model("Roles", **fields)  # type: ignore[call-overload]
+    fields = {k: (Role, ...) for k in data}
+    return create_model("Roles", __base__=BaseModel, **fields)  # type: ignore[call-overload]
 
 
 def load_config() -> dict[str, Any]:
@@ -53,7 +60,7 @@ class Settings(BaseSettings):
     log_issue_level: str
     logs_path: Path
     main_guild: int
-    roles: Roles  # type: ignore[valid-type]
+    roles: RolesProtocol  # type: ignore[valid-type]
     # endregion
 
     @computed_field  # type: ignore
@@ -97,7 +104,7 @@ class Settings(BaseSettings):
         Returns:
 
         """
-        self.__init__()
+        self.__init__()  # type: ignore[missing-argument]
 
 
 settings: Settings = Settings()  # type: ignore[attr-defined]
