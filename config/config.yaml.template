@@ -3,5 +3,7 @@ log_issue_level: WARNING
 logs_path: logs/
 main_guild: <GUILD_ID>
 roles:
-  <IMPORTANT_ROLENAME>:
-    id: <Role_ID>
+  lesHabitues:
+    id: <HABITUE_ROLE_ID>
+  gamer:
+    id: <GAMER_ROLE_ID>
