@@ -72,39 +72,13 @@ class AppSettings(BaseModel):
     """
     Application settings combining env and config file.
     Simple Pydantic models, no magic.
+
+    Access config via: settings.config.main_guild, settings.config.roles
+    Access env via: settings.env.discord_token, settings.env.postgres_url
     """
 
     env: EnvSettings
     config: FileSettings
-
-    # Shortcuts for common access patterns
-    @property
-    def discord_token(self) -> str:
-        return self.env.discord_token
-
-    @property
-    def postgres_url(self) -> str:
-        return self.env.postgres_url
-
-    @property
-    def main_guild(self) -> int:
-        return self.config.main_guild
-
-    @property
-    def roles(self) -> dict[str, Role]:
-        return self.config.roles
-
-    @property
-    def log_event_level(self) -> str:
-        return self.config.log_event_level
-
-    @property
-    def log_issue_level(self) -> str:
-        return self.config.log_issue_level
-
-    @property
-    def logs_path(self) -> Path:
-        return self.config.logs_path
 
     @classmethod
     def load(cls) -> "AppSettings":

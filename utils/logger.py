@@ -61,20 +61,20 @@ def setup_logger(
     Setup loguru logger with file and console handlers.
 
     Args:
-        log_folder_path: Path to log directory (defaults to settings.logs_path)
-        event_level: Log level for events (defaults to settings.log_event_level)
-        issue_level: Log level for issues (defaults to settings.log_issue_level)
+        log_folder_path: Path to log directory (defaults to settings.config.logs_path)
+        event_level: Log level for events (defaults to settings.config.log_event_level)
+        issue_level: Log level for issues (defaults to settings.config.log_issue_level)
     """
     # Lazy load settings to avoid import at module level
     _settings = _get_settings()
 
     # Use settings defaults if not provided
     if log_folder_path is None:
-        log_folder_path = Path(_settings.logs_path)
+        log_folder_path = Path(_settings.config.logs_path)
     if event_level is None:
-        event_level = _settings.log_event_level
+        event_level = _settings.config.log_event_level
     if issue_level is None:
-        issue_level = _settings.log_issue_level
+        issue_level = _settings.config.log_issue_level
 
     logger.remove()
     add_event_console(event_level, issue_level)
