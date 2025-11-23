@@ -182,7 +182,7 @@ class Gaming(ZorsCog):
     @commands.slash_command(
         name="join_game", description="Rejoindre un jeu pour voir ses salons."
     )
-    @commands.has_role(settings.config.roles["gamer"].id)
+    @commands.has_role(settings.config.roles.gamer.id)
     @discord.option(
         name="game",
         description="Le jeu à rejoindre.",
@@ -226,7 +226,7 @@ class Gaming(ZorsCog):
         name="leave_game",
         description="Quitter un jeu et perdre l'accès à ses salons.",
     )
-    @commands.has_role(settings.config.roles["gamer"].id)
+    @commands.has_role(settings.config.roles.gamer.id)
     @discord.option(
         name="game",
         description="Le jeu à quitter.",
