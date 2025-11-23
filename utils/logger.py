@@ -49,7 +49,10 @@ def _get_settings() -> "AppSettings":
     """
     from utils.settings import settings
 
-    return settings
+    # Force loading to return actual AppSettings instance
+    _ = settings.env  # Trigger lazy load
+    assert settings._instance is not None
+    return settings._instance
 
 
 def setup_logger(

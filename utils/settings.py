@@ -106,8 +106,8 @@ class AppSettings(BaseModel):
             )
 
         # Load and validate config
+        data = yaml.safe_load(CONFIG_PATH.read_text()) or {}
         try:
-            data = yaml.safe_load(CONFIG_PATH.read_text()) or {}
             config = FileSettings.model_validate(data)
         except ValidationError as e:
             # Check if it's a missing field error or validation error
@@ -130,7 +130,7 @@ class AppSettings(BaseModel):
             else:
                 # Validation error (e.g., invalid values)
                 # Extract clean error messages
-                errors = []
+                errors: list[str] = []
                 for error in e.errors():
                     field = ".".join(str(loc) for loc in error["loc"])
                     msg = error["msg"]
