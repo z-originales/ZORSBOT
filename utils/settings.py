@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import yaml
 
+from utils.singletonmeta import SingletonMeta
+
 
 # Paths
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
@@ -71,14 +73,17 @@ class EnvSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=DOTENV_PATH, extra="ignore")
 
 
-class AppSettings:
+class AppSettings(metaclass=SingletonMeta):
     """
     Application settings combining env and config file sources.
     This is the single source of truth for the application.
+    Singleton pattern ensures settings are loaded only once.
     """
 
-    def __init__(self, env: EnvSettings, config: FileSettings):
-        self._env = env
+    def __init__(self):
+        """Initialize settings by loading from env and config file."""
+        self._env = EnvSettings()  # type: ignore[call-arg]
+        config = load_or_init_config(CONFIG_PATH)
         self._config = config
         self._roles_accessor = RolesAccessor(config.roles)
 
@@ -137,16 +142,6 @@ class AppSettings:
         """Computed postgres connection URL."""
         return f"{self.postgres_scheme}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
-    @classmethod
-    def load(cls) -> "AppSettings":
-        """
-        Load settings from environment and config file.
-        Automatically syncs config.yaml to match the schema.
-        """
-        env = EnvSettings()  # type: ignore[call-arg]
-        config = load_or_init_config(CONFIG_PATH)
-        return cls(env, config)
-
     def reload_config(self) -> None:
         """
         Reload configuration from config.yaml.
@@ -172,14 +167,13 @@ def deep_merge(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:
 
 def write_yaml_with_comments(path: Path, data: dict[str, Any]) -> None:
     """
-    Write YAML file with helpful comments for placeholder values.
+    Write YAML file in a clean format.
     """
     lines = []
     lines.append("# ZORSBOT Configuration File")
     lines.append(
         "# This file is auto-generated and synchronized with the Settings schema."
     )
-    lines.append("# Replace placeholder values (0, <PLACEHOLDER>) with actual values.")
     lines.append("")
 
     # Log levels
@@ -201,9 +195,8 @@ def write_yaml_with_comments(path: Path, data: dict[str, Any]) -> None:
     lines.append("")
 
     # Main guild
+    lines.append("# Discord server (guild) ID")
     main_guild = data["main_guild"]
-    if main_guild == 0:
-        lines.append("# TODO: Set your Discord server (guild) ID")
     lines.append(f"main_guild: {main_guild}")
     lines.append("")
 
@@ -212,8 +205,6 @@ def write_yaml_with_comments(path: Path, data: dict[str, Any]) -> None:
     lines.append("roles:")
     for role_name, role_data in data["roles"].items():
         role_id = role_data["id"] if isinstance(role_data, dict) else role_data.id
-        if role_id == 0:
-            lines.append(f"  # TODO: Set the Discord role ID for {role_name}")
         lines.append(f"  {role_name}:")
         lines.append(f"    id: {role_id}")
 
@@ -323,5 +314,28 @@ def load_or_init_config(path: Path) -> FileSettings:
     return config
 
 
+# Proxy for lazy-loading settings with SingletonMeta
+class _SettingsProxy:
+    """
+    Proxy for lazy-loading settings on first attribute access.
+    AppSettings uses SingletonMeta, so only one instance is ever created.
+    """
+
+    _instance: AppSettings | None = None
+
+    def _get_instance(self) -> AppSettings:
+        """Get or create the singleton AppSettings instance."""
+        if self._instance is None:
+            self._instance = AppSettings()
+        return self._instance
+
+    def __getattr__(self, name: str):
+        return getattr(self._get_instance(), name)
+
+    def __repr__(self) -> str:
+        return repr(self._get_instance())
+
+
 # Global settings instance - single source of truth
-settings: AppSettings = AppSettings.load()
+# Lazy-loaded via proxy: AppSettings() called only on first attribute access
+settings: AppSettings = _SettingsProxy()  # type: ignore[assignment]
