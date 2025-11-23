@@ -58,7 +58,12 @@ if [ "$AUTO_MIGRATE_DB" = "true" ]; then
   psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DELETE FROM alembic_version;" > /dev/null 2>&1
 
   # Créer d'abord la révision avec --autogenerate
-  alembic revision --autogenerate -m "Auto-migration $(date +%Y%m%d_%H%M%S)"
+  if ! alembic revision --autogenerate -m "Auto-migration $(date +%Y%m%d_%H%M%S)"; then
+    echo "❌ Échec de la création de la révision Alembic (erreur de base de données)."
+    # Nettoyage du mot de passe avant de quitter
+    unset PGPASSWORD
+    exit 1
+  fi
 
   # Récupérer le nom du fichier de la dernière révision créée
   LATEST_REVISION=$(ls -t /app/alembic/versions/*.py 2> /dev/null | head -1)

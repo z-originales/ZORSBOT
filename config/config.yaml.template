@@ -1,9 +1,24 @@
+# ZORSBOT Configuration File
+# This file is auto-generated and synchronized with the Settings schema.
+# Replace placeholder values (0, <PLACEHOLDER>) with actual values.
+
+# Log level for general events (TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL)
 log_event_level: DEBUG
+
+# Log level for issues and errors
 log_issue_level: WARNING
+
+# Directory for log files
 logs_path: logs/
-main_guild: <GUILD_ID>
+
+# Set your Discord server (guild) ID
+main_guild: 0
+
+# Discord role IDs for bot functionality
 roles:
+  # Set the Discord role ID for lesHabitues
   lesHabitues:
-    id: <HABITUE_ROLE_ID>
+    id: 0
+  # Set the Discord role ID for gamer
   gamer:
-    id: <GAMER_ROLE_ID>
+    id: 0
