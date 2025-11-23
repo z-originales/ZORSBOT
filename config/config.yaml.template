@@ -11,14 +11,14 @@ log_issue_level: WARNING
 # Directory for log files
 logs_path: logs/
 
-# TODO: Set your Discord server (guild) ID
+# Set your Discord server (guild) ID
 main_guild: 0
 
 # Discord role IDs for bot functionality
 roles:
-  # TODO: Set the Discord role ID for lesHabitues
+  # Set the Discord role ID for lesHabitues
   lesHabitues:
     id: 0
-  # TODO: Set the Discord role ID for gamer
+  # Set the Discord role ID for gamer
   gamer:
     id: 0
