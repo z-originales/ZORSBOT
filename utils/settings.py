@@ -220,10 +220,36 @@ def write_yaml_with_comments(path: Path, data: dict[str, Any]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+class ConfigurationError(Exception):
+    """Raised when configuration is incomplete or invalid."""
+
+    pass
+
+
+def validate_config(config: FileSettings) -> list[str]:
+    """
+    Validate configuration for placeholder values.
+    Returns list of validation errors.
+    """
+    errors = []
+
+    # Check main_guild
+    if config.main_guild == 0:
+        errors.append("main_guild is not configured (value is 0)")
+
+    # Check roles
+    for role_name, role in config.roles.items():
+        if role.id == 0:
+            errors.append(f"Role '{role_name}' is not configured (id is 0)")
+
+    return errors
+
+
 def load_or_init_config(path: Path) -> FileSettings:
     """
     Load configuration from YAML file.
-    If file doesn't exist or is incomplete, create/update it with defaults and placeholders.
+    If file doesn't exist or is incomplete, create/update it with defaults and placeholders,
+    then raise ConfigurationError to prevent bot startup with invalid configuration.
     """
     # Create default settings
     default_settings = FileSettings()
@@ -232,7 +258,17 @@ def load_or_init_config(path: Path) -> FileSettings:
         # Create new config file with defaults
         path.parent.mkdir(parents=True, exist_ok=True)
         write_yaml_with_comments(path, default_settings.model_dump())
-        return default_settings
+
+        # Raise error - config file was just created with placeholders
+        raise ConfigurationError(
+            f"\n{'=' * 70}\n"
+            f"CONFIGURATION ERROR\n"
+            f"{'=' * 70}\n"
+            f"Configuration file created at:\n  {path}\n\n"
+            f"Please edit the file and replace placeholder values (0) with actual\n"
+            f"configuration values, then restart the bot.\n"
+            f"{'=' * 70}\n"
+        )
 
     # Load existing config
     raw_data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -246,9 +282,43 @@ def load_or_init_config(path: Path) -> FileSettings:
     # Validate and parse
     config = FileSettings.model_validate(merged_data)
 
-    # Update file if it was incomplete
-    if merged_data != raw_data:
+    # Check if new fields were added (schema changed)
+    config_was_updated = merged_data != raw_data
+
+    if config_was_updated:
+        # Write updated config with placeholders
         write_yaml_with_comments(path, config.model_dump())
+
+    # Validate configuration - check for placeholders
+    validation_errors = validate_config(config)
+
+    if validation_errors:
+        error_msg = (
+            f"\n{'=' * 70}\n"
+            f"CONFIGURATION ERROR\n"
+            f"{'=' * 70}\n"
+            f"Configuration validation failed for:\n  {path}\n\n"
+            f"The following fields have placeholder values and must be configured:\n"
+        )
+        for error in validation_errors:
+            error_msg += f"  - {error}\n"
+
+        if config_was_updated:
+            error_msg += (
+                f"\n{'=' * 70}\n"
+                f"NOTE: New configuration fields were added to the config file.\n"
+                f"Please review and update all placeholder values.\n"
+                f"{'=' * 70}\n"
+            )
+        else:
+            error_msg += (
+                f"\n{'=' * 70}\n"
+                f"Please edit the configuration file and set proper values,\n"
+                f"then restart the bot.\n"
+                f"{'=' * 70}\n"
+            )
+
+        raise ConfigurationError(error_msg)
 
     return config
 
