@@ -1,4 +1,5 @@
 import traceback
+import sys
 
 
 import discord
@@ -9,7 +10,7 @@ from typing_extensions import override
 from utils import logger
 from loguru import logger as log
 from asyncio import run
-from utils.settings import settings
+from utils.settings import settings, ConfigurationError
 from model.database import Database
 
 
@@ -100,21 +101,30 @@ class ZORS(commands.Bot):
                     print(traceback.format_exc())
 
 
-@log.catch(
-    level="CRITICAL",
-    message="Unexpected error occurred, that forced the bot to shut down.",
-)
 async def main():
+    """Main entry point for the bot."""
     # Setup basic logger BEFORE loading settings
     # This ensures ConfigurationError is logged properly
     logger.setup_basic_logger()
 
-    # Now setup full logger with settings (may raise ConfigurationError)
-    logger.setup_logger()
+    try:
+        # Now setup full logger with settings (may raise ConfigurationError)
+        logger.setup_logger()
 
-    # Create and start bot
-    zors_bot = await ZORS.create_bot()
-    await zors_bot.start()
+        # Create and start bot
+        zors_bot = await ZORS.create_bot()
+        await zors_bot.start()
+    except ConfigurationError as e:
+        # Configuration error - show clean message without traceback
+        log.error(str(e))
+        sys.exit(1)
+    except Exception as e:
+        # Unexpected error - show full traceback
+        log.critical(
+            f"Unexpected error occurred, that forced the bot to shut down: {e}"
+        )
+        log.exception(e)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
