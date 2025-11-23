@@ -3,7 +3,6 @@ import logging
 import sys
 from logging.config import fileConfig
 
-from utils.settings import settings
 from utils import logger
 from loguru import logger as log
 import inspect
@@ -27,16 +26,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Setup basic logger for alembic (before loading full settings)
+logger.setup_basic_logger()
+
 # Setup the custom logger
 logger.intercept_logger("sqlalchemy", level=logging.INFO)
 logger.intercept_logger("alembic", level=logging.INFO)
 logger.set_colors()
-log.remove()
-log.add(
-    sys.stderr,
-    format="{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</>",
-    colorize=True,
-)
 
 
 # log the name of each schemas imported
@@ -75,7 +71,15 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = settings.postgres_url
+    from utils.settings import EnvSettings
+
+    try:
+        env = EnvSettings()  # type: ignore[call-arg]
+        url = f"{env.postgres_scheme}://{env.postgres_user}:{env.postgres_password}@{env.postgres_host}:{env.postgres_port}/{env.postgres_db}"
+    except Exception as e:
+        log.error(f"Failed to load database configuration from .env: {e}")
+        sys.exit(1)
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -105,7 +109,15 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
-    url = settings.postgres_url
+    from utils.settings import EnvSettings
+
+    try:
+        env = EnvSettings()  # type: ignore[call-arg]
+        url = f"{env.postgres_scheme}://{env.postgres_user}:{env.postgres_password}@{env.postgres_host}:{env.postgres_port}/{env.postgres_db}"
+    except Exception as e:
+        log.error(f"Failed to load database configuration from .env: {e}")
+        sys.exit(1)
+
     connectable = create_async_engine(url, poolclass=pool.NullPool)
 
     async with connectable.connect() as connection:
