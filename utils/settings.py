@@ -1,6 +1,7 @@
 from pathlib import Path
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_core import PydanticUndefined
 import yaml
 
 
@@ -21,31 +22,39 @@ class Role(BaseModel):
     id: int
 
 
+class Roles(BaseModel):
+    """Typed roles configuration for type checking and autocomplete."""
+
+    lesHabitues: Role
+    gamer: Role
+
+    @model_validator(mode="after")
+    def validate_all_roles(self) -> "Roles":
+        """Validate that all role IDs are configured (not 0)."""
+        errors = []
+        for field_name, field_value in self.__dict__.items():
+            if isinstance(field_value, Role) and field_value.id == 0:
+                errors.append(f"{field_name} role ID must be configured (cannot be 0)")
+
+        if errors:
+            raise ValueError("; ".join(errors))
+        return self
+
+
 class FileSettings(BaseModel):
     """Settings from config.yaml."""
 
     log_event_level: str = "DEBUG"
     log_issue_level: str = "WARNING"
     logs_path: Path = Path("logs/")
-    main_guild: int = 0
-    roles: dict[str, Role] = {
-        "lesHabitues": Role(id=0),
-        "gamer": Role(id=0),
-    }
+    main_guild: int
+    roles: Roles
 
     @field_validator("main_guild")
     @classmethod
     def validate_main_guild(cls, v: int) -> int:
         if v == 0:
             raise ValueError("main_guild must be configured (cannot be 0)")
-        return v
-
-    @field_validator("roles")
-    @classmethod
-    def validate_roles(cls, v: dict[str, Role]) -> dict[str, Role]:
-        for name, role in v.items():
-            if role.id == 0:
-                raise ValueError(f"Role '{name}' must be configured (id cannot be 0)")
         return v
 
 
@@ -73,8 +82,8 @@ class AppSettings(BaseModel):
     Application settings combining env and config file.
     Simple Pydantic models, no magic.
 
-    Access config via: settings.config.main_guild, settings.config.roles
-    Access env via: settings.env.discord_token, settings.env.postgres_url
+    Access via: settings.config.main_guild, settings.config.roles
+    Access via: settings.env.discord_token, settings.env.postgres_url
     """
 
     env: EnvSettings
@@ -89,49 +98,122 @@ class AppSettings(BaseModel):
         # Load or create config
         if not CONFIG_PATH.exists():
             CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-            default = FileSettings()
-            CONFIG_PATH.write_text(
-                yaml.dump(default.model_dump(), default_flow_style=False)
-            )
+            template = cls._generate_config_template({})
+            CONFIG_PATH.write_text(template)
             raise ConfigurationError(
-                f"\n{'=' * 70}\n"
                 f"Configuration file created at: {CONFIG_PATH}\n"
-                f"Please configure it with your Discord server/role IDs.\n"
-                f"{'=' * 70}\n"
+                f"Please edit and configure required values."
             )
 
         # Load and validate config
         try:
             data = yaml.safe_load(CONFIG_PATH.read_text()) or {}
             config = FileSettings.model_validate(data)
-        except ValueError as e:
-            raise ConfigurationError(
-                f"\n{'=' * 70}\n"
-                f"CONFIGURATION ERROR\n"
-                f"{'=' * 70}\n"
-                f"Configuration validation failed for: {CONFIG_PATH}\n\n"
-                f"{str(e)}\n\n"
-                f"{'=' * 70}\n"
-                f"Please edit the config file and set proper values.\n"
-                f"{'=' * 70}\n"
-            ) from e
+        except ValidationError as e:
+            # Check if it's a missing field error or validation error
+            is_missing_field = any(error["type"] == "missing" for error in e.errors())
+
+            if is_missing_field:
+                # Missing fields - try to update the file
+                template = cls._generate_config_template(data)
+                try:
+                    CONFIG_PATH.write_text(template)
+                    raise ConfigurationError(
+                        f"Configuration validation failed: {CONFIG_PATH}\n"
+                        f"Missing fields have been added - please review and configure."
+                    )
+                except (OSError, PermissionError):
+                    raise ConfigurationError(
+                        f"Configuration validation failed: {CONFIG_PATH}\n"
+                        f"File is read-only. Please update it manually with all required fields."
+                    )
+            else:
+                # Validation error (e.g., invalid values)
+                # Extract clean error messages
+                errors = []
+                for error in e.errors():
+                    field = ".".join(str(loc) for loc in error["loc"])
+                    msg = error["msg"]
+                    errors.append(f"  - {field}: {msg}")
+
+                raise ConfigurationError(
+                    f"Configuration validation failed: {CONFIG_PATH}\n"
+                    f"Please fix the following errors:\n" + "\n".join(errors)
+                )
 
         return cls(env=env, config=config)
 
+    @staticmethod
+    def _generate_config_template(existing_data: dict) -> str:
+        """
+        Generate config.yaml by merging existing data with schema defaults.
+        Uses Pydantic model schema as single source of truth.
+        """
 
-# Lazy-loading singleton
-_settings: AppSettings | None = None
+        def deep_merge(base: dict, overlay: dict) -> dict:
+            """Recursively merge overlay into base, preserving overlay values."""
+            result = base.copy()
+            for key, value in overlay.items():
+                if (
+                    key in result
+                    and isinstance(result[key], dict)
+                    and isinstance(value, dict)
+                ):
+                    result[key] = deep_merge(result[key], value)
+                else:
+                    result[key] = value
+            return result
+
+        def schema_to_dict(model_class) -> dict:
+            """
+            Convert Pydantic model schema to dict with placeholder values.
+            Recursively processes nested BaseModels.
+            """
+            result = {}
+            for field_name, field_info in model_class.model_fields.items():
+                # Check if field has a real default (not PydanticUndefined)
+                if (
+                    field_info.default is not PydanticUndefined
+                    and field_info.default is not None
+                ):
+                    default_val = field_info.default
+                    # Convert Path to string for YAML
+                    if isinstance(default_val, Path):
+                        default_val = str(default_val)
+                    result[field_name] = default_val
+                # Recurse for any nested Pydantic BaseModel
+                elif isinstance(field_info.annotation, type) and issubclass(
+                    field_info.annotation, BaseModel
+                ):
+                    result[field_name] = schema_to_dict(field_info.annotation)
+                # Placeholder for required primitive fields
+                else:
+                    result[field_name] = 0
+            return result
+
+        # Generate structure from FileSettings schema
+        default_structure = schema_to_dict(FileSettings)
+
+        # Merge existing data into default structure
+        merged = deep_merge(default_structure, existing_data)
+
+        return (
+            "# ZORSBOT Configuration\n"
+            "# Edit values below for your Discord server\n\n"
+            + yaml.dump(merged, default_flow_style=False, sort_keys=False)
+        )
 
 
-class _SettingsProxy:
-    """Simple proxy to defer settings loading until first access."""
+class _LazySettings:
+    """Lazy-loading settings. Loads on first attribute access."""
+
+    _instance: AppSettings | None = None
 
     def __getattr__(self, name: str):
-        global _settings
-        if _settings is None:
-            _settings = AppSettings.load()
-        return getattr(_settings, name)
+        if self._instance is None:
+            self._instance = AppSettings.load()
+        return getattr(self._instance, name)
 
 
-# Global settings instance - loaded lazily on first access
-settings: AppSettings = _SettingsProxy()  # type: ignore
+# Global settings - loads on first access
+settings = _LazySettings()
