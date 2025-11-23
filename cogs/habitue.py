@@ -44,7 +44,7 @@ class Habitue(ZorsCog):
     @cached_property
     def role_habitue(self) -> Role:
         role = discord.utils.get(
-            self.bot.main_guild.roles, id=settings.roles.lesHabitues.id
+            self.bot.main_guild.roles, id=settings.config.roles["lesHabitues"].id
         )
         if role is None:
             log.error("Role 'Les Habitués' not found in the guild.")
@@ -110,7 +110,7 @@ class Habitue(ZorsCog):
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
 
     @commands.slash_command(name="set_custom_color", description="Set your color.")
-    @commands.has_role(settings.roles.lesHabitues.id)
+    @commands.has_role(settings.config.roles["lesHabitues"].id)
     @discord.option(
         name="red",
         description="The amount of red you want to set.",
@@ -153,7 +153,7 @@ class Habitue(ZorsCog):
     @commands.slash_command(
         name="set_color", description="Set your color from a list of predefined colors."
     )
-    @commands.has_role(settings.roles.lesHabitues.id)
+    @commands.has_role(settings.config.roles["lesHabitues"].id)
     @discord.option(
         name="color",
         description="The color you want to set.",

@@ -20,7 +20,7 @@ class ZORS(commands.Bot):
     def __init__(self, *args, **kwargs):
         log.debug("ZORS bot is starting up...")
         super().__init__(*args, **kwargs)
-        self.database = Database(str(settings.postgres_url))
+        self.database = Database(str(settings.env.postgres_url))
         log.info("Successfully connected to the database")
         log.trace("ZORS bot has been initialized.")
         log.info("Loading cogs...")
@@ -57,7 +57,7 @@ class ZORS(commands.Bot):
 
     @property
     def main_guild(self) -> Guild:
-        guild = self.get_guild(settings.main_guild)
+        guild = self.get_guild(settings.config.main_guild)
         if guild is None:
             log.error("Main guild not found.")
             raise ValueError("Main guild not found.")
@@ -70,7 +70,7 @@ class ZORS(commands.Bot):
         Returns:
 
         """
-        await super().start(settings.discord_token, *args, **kwargs)
+        await super().start(settings.env.discord_token, *args, **kwargs)
 
     def _load_cogs(self) -> None:
         """
