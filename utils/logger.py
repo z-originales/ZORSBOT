@@ -14,6 +14,34 @@ _retention_duration = "1 month"
 _compression_type = "gz"
 
 
+def setup_basic_logger() -> None:
+    """
+    Setup basic loguru logger before settings are loaded.
+    This ensures ConfigurationError and other startup errors are properly logged.
+    Used during initial startup before settings are available.
+    """
+    logger.remove()  # Remove default handler
+
+    # Add basic console handler for events (INFO and below)
+    logger.add(
+        stdout,
+        format=_event_format,
+        level="DEBUG",
+        colorize=True,
+        filter=lambda record: record["level"].no < logger.level("WARNING").no,
+    )
+
+    # Add basic console handler for issues (WARNING and above)
+    logger.add(
+        stderr,
+        format=_issue_format,
+        level="WARNING",
+        colorize=True,
+    )
+
+    set_colors()
+
+
 def _get_settings() -> "AppSettings":
     """
     Lazy import of settings to avoid circular dependency and allow

@@ -105,7 +105,14 @@ class ZORS(commands.Bot):
     message="Unexpected error occurred, that forced the bot to shut down.",
 )
 async def main():
+    # Setup basic logger BEFORE loading settings
+    # This ensures ConfigurationError is logged properly
+    logger.setup_basic_logger()
+
+    # Now setup full logger with settings (may raise ConfigurationError)
     logger.setup_logger()
+
+    # Create and start bot
     zors_bot = await ZORS.create_bot()
     await zors_bot.start()
 
