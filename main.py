@@ -56,7 +56,7 @@ class ZORS(commands.Bot):
 
     @property
     def main_guild(self) -> Guild:
-        guild = self.get_guild(settings.config.main_guild)
+        guild = self.get_guild(settings.runtime.main_guild)
         if guild is None:
             log.error("Main guild not found.")
             raise ValueError("Main guild not found.")
