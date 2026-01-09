@@ -1,9 +1,10 @@
 from pathlib import Path
-from pydantic import BaseModel, field_validator, model_validator, ValidationError
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic_core import PydanticUndefined
-import yaml
+from typing import Literal
 
+import yaml
+from pydantic import BaseModel, ValidationError, field_validator, model_validator
+from pydantic_core import PydanticUndefined
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Paths
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
@@ -44,8 +45,8 @@ class Roles(BaseModel):
 class FileSettings(BaseModel):
     """Settings from config.yaml."""
 
-    log_event_level: str = "DEBUG"
-    log_issue_level: str = "WARNING"
+    log_event_level: Literal['TRACE', 'DEBUG', 'INFO'] = "DEBUG"
+    log_issue_level: Literal['WARNING', 'ERROR', 'CRITICAL'] = "WARNING"
     logs_path: Path = Path("logs/")
     main_guild: int
     roles: Roles
