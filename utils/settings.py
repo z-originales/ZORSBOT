@@ -2,7 +2,15 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ValidationError, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    PostgresDsn,
+    SecretStr,
+    ValidationError,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from pydantic_core import PydanticUndefined
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -45,8 +53,8 @@ class Roles(BaseModel):
 class FileSettings(BaseModel):
     """Settings from config.yaml."""
 
-    log_event_level: Literal['TRACE', 'DEBUG', 'INFO'] = "DEBUG"
-    log_issue_level: Literal['WARNING', 'ERROR', 'CRITICAL'] = "WARNING"
+    log_event_level: Literal["TRACE", "DEBUG", "INFO"] = "DEBUG"
+    log_issue_level: Literal["WARNING", "ERROR", "CRITICAL"] = "WARNING"
     logs_path: Path = Path("logs/")
     main_guild: int
     roles: Roles
@@ -62,8 +70,8 @@ class FileSettings(BaseModel):
 class EnvSettings(BaseSettings):
     """Settings from .env - secrets only."""
 
-    discord_token: str
-    postgres_password: str
+    discord_token: SecretStr
+    postgres_password: SecretStr
     postgres_user: str
     postgres_db: str
     postgres_host: str
@@ -72,10 +80,17 @@ class EnvSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=DOTENV_PATH, extra="ignore")
 
+    @computed_field  # type: ignore
     @property
-    def postgres_url(self) -> str:
-        """Computed postgres connection URL."""
-        return f"{self.postgres_scheme}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+    def postgres_url(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme=self.postgres_scheme,
+            username=self.postgres_user,
+            password=self.postgres_password.get_secret_value(),
+            host=self.postgres_host,
+            port=int(self.postgres_port),
+            path=f"/{self.postgres_db}",
+        )
 
 
 class AppSettings(BaseModel):
