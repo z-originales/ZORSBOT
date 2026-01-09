@@ -50,7 +50,7 @@ class Roles(BaseModel):
         return self
 
 
-class FileSettings(BaseModel):
+class RuntimeSettings(BaseModel):
     """Settings from config.yaml."""
 
     log_event_level: Literal["TRACE", "DEBUG", "INFO"] = "DEBUG"
@@ -103,7 +103,7 @@ class AppSettings(BaseModel):
     """
 
     env: EnvSettings
-    config: FileSettings
+    runtime: RuntimeSettings
 
     @classmethod
     def load(cls) -> "AppSettings":
@@ -124,7 +124,7 @@ class AppSettings(BaseModel):
         # Load and validate config
         data = yaml.safe_load(CONFIG_PATH.read_text()) or {}
         try:
-            config = FileSettings.model_validate(data)
+            config = RuntimeSettings.model_validate(data)
         except ValidationError as e:
             # Check if it's a missing field error or validation error
             is_missing_field = any(error["type"] == "missing" for error in e.errors())
@@ -157,7 +157,7 @@ class AppSettings(BaseModel):
                     f"Please fix the following errors:\n" + "\n".join(errors)
                 )
 
-        return cls(env=env, config=config)
+        return cls(env=env, runtime=config)
 
     @staticmethod
     def _generate_config_template(existing_data: dict) -> str:
@@ -208,7 +208,7 @@ class AppSettings(BaseModel):
             return result
 
         # Generate structure from FileSettings schema
-        default_structure = schema_to_dict(FileSettings)
+        default_structure = schema_to_dict(RuntimeSettings)
 
         # Merge existing data into default structure
         merged = deep_merge(default_structure, existing_data)
