@@ -1,17 +1,15 @@
 import traceback
-import sys
-
+from asyncio import run
 
 import discord
 from discord import Guild
 from discord.ext import commands
+from loguru import logger as log
 from typing_extensions import override
 
-from utils import logger
-from loguru import logger as log
-from asyncio import run
-from utils.settings import settings, ConfigurationError
 from model.database import Database
+from utils import logger
+from utils.settings import ConfigurationError, settings
 
 
 class ZORS(commands.Bot):
@@ -117,14 +115,14 @@ async def main():
     except ConfigurationError as e:
         # Configuration error - show clean message without traceback
         log.error(str(e))
-        sys.exit(1)
+        exit(1)
     except Exception as e:
         # Unexpected error - show full traceback
         log.critical(
             f"Unexpected error occurred, that forced the bot to shut down: {e}"
         )
         log.exception(e)
-        sys.exit(1)
+        exit(1)
 
 
 if __name__ == "__main__":
