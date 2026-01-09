@@ -112,7 +112,7 @@ async def run_async_migrations() -> None:
         log.error(f"Failed to load database configuration from .env: {e}")
         sys.exit(1)
 
-    connectable = create_async_engine(url, poolclass=pool.NullPool)
+    connectable = create_async_engine(str(url), poolclass=pool.NullPool)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
