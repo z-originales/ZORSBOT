@@ -1,8 +1,8 @@
 import asyncio
 import inspect
 import logging
-import sys
 from logging.config import fileConfig
+from sys import exit
 
 from loguru import logger as log
 from sqlalchemy import pool
@@ -73,7 +73,7 @@ def run_migrations_offline() -> None:
         url = env.postgres_db
     except Exception as e:
         log.error(f"Failed to load database configuration from .env: {e}")
-        sys.exit(1)
+        exit(1)
 
     context.configure(
         url=url,
@@ -110,7 +110,7 @@ async def run_async_migrations() -> None:
         url = env.postgres_url
     except Exception as e:
         log.error(f"Failed to load database configuration from .env: {e}")
-        sys.exit(1)
+        exit(1)
 
     connectable = create_async_engine(str(url), poolclass=pool.NullPool)
 

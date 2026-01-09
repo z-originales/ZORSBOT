@@ -75,7 +75,7 @@ class EnvSettings(BaseSettings):
     postgres_user: str
     postgres_db: str
     postgres_host: str
-    postgres_port: str
+    postgres_port: int
     postgres_scheme: str = "postgresql+asyncpg"
 
     model_config = SettingsConfigDict(env_file=DOTENV_PATH, extra="ignore")
@@ -88,7 +88,7 @@ class EnvSettings(BaseSettings):
             username=self.postgres_user,
             password=self.postgres_password.get_secret_value(),
             host=self.postgres_host,
-            port=int(self.postgres_port),
+            port=self.postgres_port,
             path=f"/{self.postgres_db}",
         )
 

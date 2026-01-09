@@ -1,5 +1,6 @@
 import traceback
 from asyncio import run
+from sys import exit
 
 import discord
 from discord import Guild
