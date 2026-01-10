@@ -2,7 +2,6 @@ import asyncio
 
 import discord
 from discord import CategoryChannel, Member, VoiceChannel, VoiceState
-from discord.abc import GuildChannel
 from discord.ext import commands
 from loguru import logger as log
 
@@ -10,7 +9,6 @@ from main import ZORS
 from model.managers import GameCategoryManager, PartyManager
 from model.schemas import GameCategory
 from utils.settings import settings
-
 from utils.zors_cog import ZorsCog
 
 
@@ -183,7 +181,7 @@ class Gaming(ZorsCog):
     @commands.slash_command(
         name="join_game", description="Rejoindre un jeu pour voir ses salons."
     )
-    @commands.has_role(settings.roles.gamer.id)
+    @commands.has_role(settings.runtime.roles.gamer.id)
     @discord.option(
         name="game",
         description="Le jeu à rejoindre.",
@@ -227,7 +225,7 @@ class Gaming(ZorsCog):
         name="leave_game",
         description="Quitter un jeu et perdre l'accès à ses salons.",
     )
-    @commands.has_role(settings.roles.gamer.id)
+    @commands.has_role(settings.runtime.roles.gamer.id)
     @discord.option(
         name="game",
         description="Le jeu à quitter.",
