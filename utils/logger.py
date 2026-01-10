@@ -1,39 +1,100 @@
-from pathlib import Path
 import logging
+from pathlib import Path
+from sys import stderr, stdout
+from typing import TYPE_CHECKING
+
 from loguru import logger
-from sys import stdout, stderr
-from utils.settings import settings
+
+if TYPE_CHECKING:
+    from utils.settings import AppSettings
 
 _event_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</>"
 _issue_format = "{time:DD/MM/YYYY HH:mm:ss:SS} | <lvl>{level}</> | <lvl>{message}</> | {file}:{line}"
 _rotation_duration = "1 week"
 _retention_duration = "1 month"
 _compression_type = "gz"
-_default_event_level = settings.log_event_level
-_default_issue_level = settings.log_issue_level
+
+
+def setup_basic_logger() -> None:
+    """
+    Setup basic loguru logger before settings are loaded.
+    This ensures ConfigurationError and other startup errors are properly logged.
+    Used during initial startup before settings are available.
+    """
+    logger.remove()  # Remove default handler
+
+    # Add basic console handler for events (INFO and below)
+    logger.add(
+        stdout,
+        format=_event_format,
+        level="DEBUG",
+        colorize=True,
+        filter=lambda record: record["level"].no < logger.level("WARNING").no,
+    )
+
+    # Add basic console handler for issues (WARNING and above)
+    logger.add(
+        stderr,
+        format=_issue_format,
+        level="WARNING",
+        colorize=True,
+    )
+
+    set_colors()
+
+
+def _get_settings() -> "AppSettings":
+    """
+    Lazy import of settings to avoid circular dependency and allow
+    ConfigurationError to be raised before logger setup.
+    """
+    from utils.settings import settings
+
+    # Force loading to return actual AppSettings instance
+    _ = settings.env  # Trigger lazy load
+    assert settings._instance is not None
+    return settings._instance
 
 
 def setup_logger(
-    log_folder_path: Path = Path(settings.logs_path),
-    event_level: str = settings.log_event_level,
-    issue_level: str = settings.log_issue_level,
+    log_folder_path: Path | None = None,
+    event_level: str | None = None,
+    issue_level: str | None = None,
 ) -> None:
+    """
+    Setup loguru logger with file and console handlers.
+
+    Args:
+        log_folder_path: Path to log directory (defaults to settings.config.logs_path)
+        event_level: Log level for events (defaults to settings.config.log_event_level)
+        issue_level: Log level for issues (defaults to settings.config.log_issue_level)
+    """
+    # Lazy load settings to avoid import at module level
+    _settings = _get_settings()
+
+    # Use settings defaults if not provided
+    if log_folder_path is None:
+        log_folder_path = Path(_settings.runtime.logs_path)
+    if event_level is None:
+        event_level = _settings.runtime.log_event_level
+    if issue_level is None:
+        issue_level = _settings.runtime.log_issue_level
+
     logger.remove()
-    add_event_console(event_level)
+    add_event_console(event_level, issue_level)
     add_issue_console(issue_level)
-    add_event_log_file(event_level, log_folder_path)
+    add_event_log_file(event_level, issue_level, log_folder_path)
     add_issue_log_file(issue_level, log_folder_path)
     set_colors()
 
 
-def add_event_console(log_level: str) -> None:
+def add_event_console(log_level: str, issue_level: str) -> None:
     logger.add(
         stdout,
         format=_event_format,
         level=log_level,
         colorize=True,
-        filter=lambda record: record["level"].no
-        < logger.level(_default_issue_level).no,
+        filter=lambda record: record["level"].no < logger.level(issue_level).no,
     )
 
 
@@ -41,15 +102,14 @@ def add_issue_console(log_level: str) -> None:
     logger.add(stderr, format=_issue_format, level=log_level, colorize=True)
 
 
-def add_event_log_file(log_level: str, log_folder_path: Path) -> None:
+def add_event_log_file(log_level: str, issue_level: str, log_folder_path: Path) -> None:
     logger.add(
         log_folder_path / "events" / "events.log",
         format=_event_format,
         rotation=_rotation_duration,
         retention=_retention_duration,
         level=log_level,
-        filter=lambda record: record["level"].no
-        < logger.level(_default_issue_level).no,
+        filter=lambda record: record["level"].no < logger.level(issue_level).no,
         compression=_compression_type,
     )
 
