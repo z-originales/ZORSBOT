@@ -44,7 +44,7 @@ class Events(ZorsCog):
                 log.debug(f"{message_beginning} - Check failure: {error}")
                 await ctx.respond(str(error), ephemeral=True)
                 return
-            case commands.MissingRole:
+            case commands.MissingRole():
                 missing_role = error.missing_role
                 role = (
                     discord.utils.get(ctx.guild.roles, name=missing_role)
@@ -61,7 +61,7 @@ class Events(ZorsCog):
                     f"shouldn't be able to see it. Please contact an admin so he can manage the command access.",
                     allowed_mentions=discord.AllowedMentions.none(),
                 )
-            case commands.MissingPermissions:
+            case commands.MissingPermissions():
                 # Utilisez directement error sans le redéfinir
                 missing_permissions = error.missing_permissions
                 log.error(

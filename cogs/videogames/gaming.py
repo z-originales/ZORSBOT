@@ -153,8 +153,7 @@ class Gaming(ZorsCog):
         game_category: CategoryChannel | None = discord.utils.get(
             guild.categories, id=int(game)
         )
-        guild = self.require_guild(ctx)
-        game_category: CategoryChannel | None = discord.utils.get(guild, id=int(game))
+
         if game_category is None:
             await ctx.respond("Cette catégorie de jeu n'existe pas.", ephemeral=True)
             log.info("Cette catégorie de jeu n'existe pas.")
