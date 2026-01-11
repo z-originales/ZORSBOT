@@ -86,9 +86,7 @@ class Habitue(ZorsCog):
             await ctx.respond(f"{member.display_name} is already an habitue")
         else:
             await self._add_habitue(guild, member, color)
-            guild = self.require_guild(ctx)
-            await self._add_habitue(guild, member, color)
-            await ctx.respond(f"{member.display_name} has been added has an habitue.")
+            await ctx.respond(f"{member.display_name} has been added as an habitue.")
 
     @commands.slash_command(
         name="remove_habitue", description="Remove a habitue from the server."
@@ -108,8 +106,6 @@ class Habitue(ZorsCog):
             log.error(f"{member.display_name} is not an habitue")
             await ctx.respond(f"{member.display_name} is not an habitue")
         else:
-            await self._remove_habitue(guild, member)
-            guild = self.require_guild(ctx)
             await self._remove_habitue(guild, member)
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
 
