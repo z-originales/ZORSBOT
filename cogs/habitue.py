@@ -80,11 +80,12 @@ class Habitue(ZorsCog):
     async def add_habitue_command(
         self, ctx: discord.ApplicationContext, member: Member, color: str | None = None
     ):
+        guild = self.require_guild(ctx)
         if self.role_habitue in member.roles:
             log.error(f"{member.display_name} is already an habitue")
             await ctx.respond(f"{member.display_name} is already an habitue")
         else:
-            await self._add_habitue(ctx.guild, member, color)
+            await self._add_habitue(guild, member, color)
             guild = self.require_guild(ctx)
             await self._add_habitue(guild, member, color)
             await ctx.respond(f"{member.display_name} has been added has an habitue.")
@@ -102,11 +103,12 @@ class Habitue(ZorsCog):
     async def remove_habitue_command(
         self, ctx: discord.ApplicationContext, member: Member
     ):
+        guild = self.require_guild(ctx)
         if self.role_habitue not in member.roles:
             log.error(f"{member.display_name} is not an habitue")
             await ctx.respond(f"{member.display_name} is not an habitue")
         else:
-            await self._remove_habitue(ctx.guild, member)
+            await self._remove_habitue(guild, member)
             guild = self.require_guild(ctx)
             await self._remove_habitue(guild, member)
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
@@ -166,9 +168,8 @@ class Habitue(ZorsCog):
         choices=list(default_colors.keys()),
     )
     async def set_color(self, ctx: discord.ApplicationContext, color: str):
-        r, g, b = default_colors[color].to_rgb()
-        await self._update_user_color(ctx.user, r, g, b)
         member = self.require_member(ctx)
+        r, g, b = default_colors[color].to_rgb()
         await self._update_user_color(member, r, g, b)
         await ctx.respond(f"Your color has been set to {color}.")
 
