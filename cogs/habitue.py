@@ -87,6 +87,8 @@ class Habitue(ZorsCog):
             await ctx.respond(f"{member.display_name} is already an habitue")
         else:
             await self._add_habitue(ctx.guild, member, color)
+            guild = self.require_guild(ctx)
+            await self._add_habitue(guild, member, color)
             await ctx.respond(f"{member.display_name} has been added has an habitue.")
 
     @commands.slash_command(
@@ -107,6 +109,8 @@ class Habitue(ZorsCog):
             await ctx.respond(f"{member.display_name} is not an habitue")
         else:
             await self._remove_habitue(ctx.guild, member)
+            guild = self.require_guild(ctx)
+            await self._remove_habitue(guild, member)
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
 
     @commands.slash_command(name="set_custom_color", description="Set your color.")
@@ -139,7 +143,9 @@ class Habitue(ZorsCog):
         self, ctx: discord.ApplicationContext, red: int, green: int, blue: int
     ):
         try:
-            color_name = await self._update_user_color(ctx.user, red, green, blue)
+            member = self.require_member(ctx)
+            color_name = await self._update_user_color(member, red, green, blue)
+
             await ctx.respond(
                 f"Your color has been set to {color_name}.", ephemeral=True
             )
@@ -164,6 +170,8 @@ class Habitue(ZorsCog):
     async def set_color(self, ctx: discord.ApplicationContext, color: str):
         r, g, b = default_colors[color].to_rgb()
         await self._update_user_color(ctx.user, r, g, b)
+        member = self.require_member(ctx)
+        await self._update_user_color(member, r, g, b)
         await ctx.respond(f"Your color has been set to {color}.")
 
     # region utility functions
