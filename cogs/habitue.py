@@ -80,12 +80,13 @@ class Habitue(ZorsCog):
     async def add_habitue_command(
         self, ctx: discord.ApplicationContext, member: Member, color: str | None = None
     ):
+        guild = self.require_guild(ctx)
         if self.role_habitue in member.roles:
             log.error(f"{member.display_name} is already an habitue")
             await ctx.respond(f"{member.display_name} is already an habitue")
         else:
-            await self._add_habitue(ctx.guild, member, color)
-            await ctx.respond(f"{member.display_name} has been added has an habitue.")
+            await self._add_habitue(guild, member, color)
+            await ctx.respond(f"{member.display_name} has been added as an habitue.")
 
     @commands.slash_command(
         name="remove_habitue", description="Remove a habitue from the server."
@@ -100,11 +101,12 @@ class Habitue(ZorsCog):
     async def remove_habitue_command(
         self, ctx: discord.ApplicationContext, member: Member
     ):
+        guild = self.require_guild(ctx)
         if self.role_habitue not in member.roles:
             log.error(f"{member.display_name} is not an habitue")
             await ctx.respond(f"{member.display_name} is not an habitue")
         else:
-            await self._remove_habitue(ctx.guild, member)
+            await self._remove_habitue(guild, member)
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
 
     @commands.slash_command(name="set_custom_color", description="Set your color.")
@@ -137,7 +139,9 @@ class Habitue(ZorsCog):
         self, ctx: discord.ApplicationContext, red: int, green: int, blue: int
     ):
         try:
-            color_name = await self._update_user_color(ctx.user, red, green, blue)
+            member = self.require_member(ctx)
+            color_name = await self._update_user_color(member, red, green, blue)
+
             await ctx.respond(
                 f"Your color has been set to {color_name}.", ephemeral=True
             )
@@ -160,8 +164,9 @@ class Habitue(ZorsCog):
         choices=list(default_colors.keys()),
     )
     async def set_color(self, ctx: discord.ApplicationContext, color: str):
+        member = self.require_member(ctx)
         r, g, b = default_colors[color].to_rgb()
-        await self._update_user_color(ctx.user, r, g, b)
+        await self._update_user_color(member, r, g, b)
         await ctx.respond(f"Your color has been set to {color}.")
 
     # region utility functions

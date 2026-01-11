@@ -5,22 +5,24 @@ description = "A discord bot for 'la bande s4' server"
 authors = [{ name = "ZEN" }, { name = "Anemys" }]
 requires-python = ">=3.13"
 dependencies = [
-    "alembic>=1.15.2",
-    "asyncpg>=0.30.0",
+    "alembic>=1.18.0",
+    "asyncpg==0.31.0",
     "audioop-lts>=0.2.1",
+    "beautifulsoup4>=4.14.3",
     "httpx>=0.28.1",
     "loguru>=0.7.2",
-    "py-cord>=2.6.1",
+    "py-cord==2.7.0",
+    "pydantic==2.12.5",
     "pydantic-settings>=2.7.1",
     "pyyaml>=6.0.2",
-    "requests>=2.32.3",
-    "sqlmodel>=0.0.22",
+    "requests>=2.32.5",
+    "sqlmodel==0.0.31",
 ]
 
 [dependency-groups]
 dev = [
-    "pyrefly>=0.28.1",
-    "ruff>=0.9.4",
+    "pyrefly>=0.47.0",
+    "ruff>=0.14.11",
     "types-pyyaml>=6.0.12.20250516",
 ]
 
