@@ -1,29 +1,30 @@
+import discord
 from discord import ApplicationContext
 from discord.ext import commands
-import discord
-
 from loguru import logger as log
-from model.managers import MemberManager
+
 from main import ZORS
+from model.managers import MemberManager
 from utils.zors_cog import ZorsCog
+
+
+async def _log_every_command(ctx: ApplicationContext):
+    """
+    Logs every command called by a user.
+    This is used instead of the default on_application_command since it runs in parallel with the command not before it.
+    Args:
+        ctx: The context of the command.
+
+    Returns:
+
+    """
+    log.trace(f"Command {ctx.command} called by {ctx.author}.")
 
 
 class Events(ZorsCog):
     def __init__(self, bot: ZORS):
         self.bot = bot
-        self.bot.before_invoke(self._log_every_command)
-
-    async def _log_every_command(self, ctx: ApplicationContext):
-        """
-        Logs every command called by a user.
-        This is used instead of the default on_application_command since it runs in parallel with the command not before it.
-        Args:
-            ctx: The context of the command.
-
-        Returns:
-
-        """
-        log.trace(f"Command {ctx.command} called by {ctx.author}.")
+        self.bot.before_invoke(_log_every_command)
 
     @discord.Cog.listener()
     async def on_application_command_error(
@@ -34,12 +35,22 @@ class Events(ZorsCog):
         message_beginning = (
             f"An error occurred while executing the command {ctx.command}."
         )
-        match type(error):
+        match error:
+            case commands.NoPrivateMessage():
+                log.debug(f"{message_beginning} - Context error: {error}")
+                await ctx.respond(str(error), ephemeral=True)
+                return
+            case commands.CheckFailure():
+                log.debug(f"{message_beginning} - Check failure: {error}")
+                await ctx.respond(str(error), ephemeral=True)
+                return
             case commands.MissingRole:
-                # Au lieu de redéfinir error, utilisez-le directement
                 missing_role = error.missing_role
-                role = discord.utils.get(ctx.guild.roles, name=missing_role)
-                # Vérifiez que le rôle existe avant d'accéder à son ID
+                role = (
+                    discord.utils.get(ctx.guild.roles, name=missing_role)
+                    if ctx.guild
+                    else None
+                )
                 roleid = str(role.id) if role else "rôle inconnu"
                 log.error(
                     f"{message_beginning} - MissingRole: {missing_role} for {ctx.author}, that shouldn't happen "
