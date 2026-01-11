@@ -1,9 +1,18 @@
 from pathlib import Path
-from pydantic import BaseModel, field_validator, model_validator, ValidationError
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic_core import PydanticUndefined
-import yaml
+from typing import Literal
 
+import yaml
+from pydantic import (
+    BaseModel,
+    PostgresDsn,
+    SecretStr,
+    ValidationError,
+    computed_field,
+    field_validator,
+    model_validator,
+)
+from pydantic_core import PydanticUndefined
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Paths
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
@@ -41,11 +50,11 @@ class Roles(BaseModel):
         return self
 
 
-class FileSettings(BaseModel):
+class RuntimeSettings(BaseModel):
     """Settings from config.yaml."""
 
-    log_event_level: str = "DEBUG"
-    log_issue_level: str = "WARNING"
+    log_event_level: Literal["TRACE", "DEBUG", "INFO"] = "DEBUG"
+    log_issue_level: Literal["WARNING", "ERROR", "CRITICAL"] = "WARNING"
     logs_path: Path = Path("logs/")
     main_guild: int
     roles: Roles
@@ -61,20 +70,27 @@ class FileSettings(BaseModel):
 class EnvSettings(BaseSettings):
     """Settings from .env - secrets only."""
 
-    discord_token: str
-    postgres_password: str
+    discord_token: SecretStr
+    postgres_password: SecretStr
     postgres_user: str
     postgres_db: str
     postgres_host: str
-    postgres_port: str
+    postgres_port: int
     postgres_scheme: str = "postgresql+asyncpg"
 
     model_config = SettingsConfigDict(env_file=DOTENV_PATH, extra="ignore")
 
+    @computed_field  # type: ignore
     @property
-    def postgres_url(self) -> str:
-        """Computed postgres connection URL."""
-        return f"{self.postgres_scheme}://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+    def postgres_url(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme=self.postgres_scheme,
+            username=self.postgres_user,
+            password=self.postgres_password.get_secret_value(),
+            host=self.postgres_host,
+            port=self.postgres_port,
+            path=f"/{self.postgres_db}",
+        )
 
 
 class AppSettings(BaseModel):
@@ -87,7 +103,7 @@ class AppSettings(BaseModel):
     """
 
     env: EnvSettings
-    config: FileSettings
+    runtime: RuntimeSettings
 
     @classmethod
     def load(cls) -> "AppSettings":
@@ -108,7 +124,7 @@ class AppSettings(BaseModel):
         # Load and validate config
         data = yaml.safe_load(CONFIG_PATH.read_text()) or {}
         try:
-            config = FileSettings.model_validate(data)
+            config = RuntimeSettings.model_validate(data)
         except ValidationError as e:
             # Check if it's a missing field error or validation error
             is_missing_field = any(error["type"] == "missing" for error in e.errors())
@@ -141,7 +157,7 @@ class AppSettings(BaseModel):
                     f"Please fix the following errors:\n" + "\n".join(errors)
                 )
 
-        return cls(env=env, config=config)
+        return cls(env=env, runtime=config)
 
     @staticmethod
     def _generate_config_template(existing_data: dict) -> str:
@@ -192,7 +208,7 @@ class AppSettings(BaseModel):
             return result
 
         # Generate structure from FileSettings schema
-        default_structure = schema_to_dict(FileSettings)
+        default_structure = schema_to_dict(RuntimeSettings)
 
         # Merge existing data into default structure
         merged = deep_merge(default_structure, existing_data)
