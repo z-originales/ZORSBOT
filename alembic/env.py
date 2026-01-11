@@ -1,21 +1,18 @@
 import asyncio
-import logging
-import sys
-from logging.config import fileConfig
-
-from utils import logger
-from loguru import logger as log
 import inspect
+import logging
+from logging.config import fileConfig
+from sys import exit
 
+from loguru import logger as log
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 
 from alembic import context
-
-
 from model import schemas
+from utils import logger, settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -71,14 +68,12 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    from utils.settings import EnvSettings
-
     try:
-        env = EnvSettings()  # type: ignore[call-arg]
-        url = f"{env.postgres_scheme}://{env.postgres_user}:{env.postgres_password}@{env.postgres_host}:{env.postgres_port}/{env.postgres_db}"
+        env = settings.EnvSettings()  # type: ignore[call-arg]
+        url = env.postgres_db
     except Exception as e:
         log.error(f"Failed to load database configuration from .env: {e}")
-        sys.exit(1)
+        exit(1)
 
     context.configure(
         url=url,
@@ -109,16 +104,15 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
-    from utils.settings import EnvSettings
 
     try:
-        env = EnvSettings()  # type: ignore[call-arg]
-        url = f"{env.postgres_scheme}://{env.postgres_user}:{env.postgres_password}@{env.postgres_host}:{env.postgres_port}/{env.postgres_db}"
+        env = settings.EnvSettings()  # type: ignore[call-arg]
+        url = env.postgres_url
     except Exception as e:
         log.error(f"Failed to load database configuration from .env: {e}")
-        sys.exit(1)
+        exit(1)
 
-    connectable = create_async_engine(url, poolclass=pool.NullPool)
+    connectable = create_async_engine(str(url), poolclass=pool.NullPool)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

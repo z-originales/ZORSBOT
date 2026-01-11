@@ -1,8 +1,9 @@
-from pathlib import Path
 import logging
-from loguru import logger
-from sys import stdout, stderr
+from pathlib import Path
+from sys import stderr, stdout
 from typing import TYPE_CHECKING
+
+from loguru import logger
 
 if TYPE_CHECKING:
     from utils.settings import AppSettings
@@ -73,11 +74,11 @@ def setup_logger(
 
     # Use settings defaults if not provided
     if log_folder_path is None:
-        log_folder_path = Path(_settings.config.logs_path)
+        log_folder_path = Path(_settings.runtime.logs_path)
     if event_level is None:
-        event_level = _settings.config.log_event_level
+        event_level = _settings.runtime.log_event_level
     if issue_level is None:
-        issue_level = _settings.config.log_issue_level
+        issue_level = _settings.runtime.log_issue_level
 
     logger.remove()
     add_event_console(event_level, issue_level)
