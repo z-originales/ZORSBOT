@@ -95,11 +95,11 @@ class Gaming(ZorsCog):
         game_voice = await game_category.create_voice_channel("➕Add Party")
 
         # Création du rôle Discord associé à la catégorie
-        game_role = await ctx.guild.create_role(name=f"{game}", mentionable=True)
+        game_role = await guild.create_role(name=f"{game}", mentionable=True)
 
         # Configuration des permissions de la catégorie
         await game_category.set_permissions(
-            ctx.guild.default_role,  # @everyone
+            guild.default_role,  # @everyone
             view_channel=False,  # Invisible par défaut
             read_messages=False,
         )
@@ -148,8 +148,10 @@ class Gaming(ZorsCog):
         Supprime aussi le rôle Discord associé à la catégorie.
         Nettoie également les données du jeu dans la base de données.
         """
+        guild = self.require_guild(ctx)
+
         game_category: CategoryChannel | None = discord.utils.get(
-            ctx.guild.categories, id=int(game)
+            guild.categories, id=int(game)
         )
         guild = self.require_guild(ctx)
         game_category: CategoryChannel | None = discord.utils.get(guild, id=int(game))
@@ -202,7 +204,7 @@ class Gaming(ZorsCog):
                 await ctx.respond("Ce jeu n'existe pas.", ephemeral=True)
                 return
 
-            role = ctx.guild.get_role(game_category.role_id)
+            role = guild.get_role(game_category.role_id)
             if not role:
                 await ctx.respond("Le rôle de ce jeu est introuvable.", ephemeral=True)
                 log.error(
