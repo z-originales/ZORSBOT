@@ -19,8 +19,6 @@ class Gaming(ZorsCog):
     et gère des salons vocaux dynamiques pour les parties.
     """
 
-    category_role = "==RÔLES ACCES=="
-
     def __init__(self, bot: ZORS):
         self.bot = bot
 
@@ -81,8 +79,12 @@ class Gaming(ZorsCog):
             settings.config.discord_structure.channels.games_root_category_id
         )
         if main_game_category is None:
-            await ctx.respond("La catégorie principale de jeux n'existe pas.")
-            log.info("La catégorie principale de jeux n'existe pas. Créez-la d'abord.")
+            await ctx.respond(
+                f"La catégorie principale de jeux (ID: {settings.config.discord_structure.channels.games_root_category_id}) n'existe pas."
+            )
+            log.info(
+                f"La catégorie principale de jeux (ID: {settings.config.discord_structure.channels.games_root_category_id}) n'existe pas. Vérifiez la config."
+            )
             return
 
         # Création de la structure du jeu
@@ -90,6 +92,7 @@ class Gaming(ZorsCog):
         game_category = await guild.create_category(
             "> " + game, position=main_game_category_position + 1
         )
+
         game_forum = await game_category.create_forum_channel("Forum")
         game_text = await game_category.create_text_channel("Chat")
         game_voice = await game_category.create_voice_channel("➕Add Party")

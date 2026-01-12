@@ -30,7 +30,6 @@ default_colors = {
 
 
 class Habitue(ZorsCog):
-    category_role = "==COULEURS HABITUÉS=="
     habitue_colorname_template = "couleur {username}"
     _processed_habitue: Member | None = (
         None  # TODO turn it into a set to handle multiple members being processed at the same time
@@ -85,6 +84,7 @@ class Habitue(ZorsCog):
             log.error(f"{member.display_name} is already an habitue")
             await ctx.respond(f"{member.display_name} is already an habitue")
         else:
+            guild = self.require_guild(ctx)
             await self._add_habitue(guild, member, color)
             await ctx.respond(f"{member.display_name} has been added as an habitue.")
 
@@ -106,6 +106,7 @@ class Habitue(ZorsCog):
             log.error(f"{member.display_name} is not an habitue")
             await ctx.respond(f"{member.display_name} is not an habitue")
         else:
+            guild = self.require_guild(ctx)
             await self._remove_habitue(guild, member)
             await ctx.respond(f"{member.display_name} has been removed as an habitue.")
 
@@ -166,6 +167,7 @@ class Habitue(ZorsCog):
     async def set_color(self, ctx: discord.ApplicationContext, color: str):
         member = self.require_member(ctx)
         r, g, b = default_colors[color].to_rgb()
+        member = self.require_member(ctx)
         await self._update_user_color(member, r, g, b)
         await ctx.respond(f"Your color has been set to {color}.")
 
@@ -309,13 +311,15 @@ class Habitue(ZorsCog):
             raise ValueError("Le nom d'affichage du membre ne peut pas être vide")
 
         # Recherche du rôle de catégorie
-        category: Role | None = discord.utils.get(guild.roles, name=self.category_role)
+        placement = settings.config.role_placement.habitue_color_roles
+        category = guild.get_role(placement.anchor_role_id)
         if category is None:
-            error_msg = f"Rôle de catégorie '{self.category_role}' introuvable dans le serveur '{guild.name}'"
+            error_msg = f"Rôle de catégorie (ID: {placement.anchor_role_id}) introuvable dans le serveur '{guild.name}'"
             log.error(error_msg)
             raise ValueError(error_msg)
 
         # Définition du nom du rôle de couleur
+
         color_role_name = self.habitue_colorname_template.format(
             username=member_display_name
         )
@@ -339,7 +343,12 @@ class Habitue(ZorsCog):
 
             # Placement du rôle dans la hiérarchie
             try:
-                await role.edit(position=category.position)
+                target_pos = (
+                    category.position - 1
+                    if placement.where == "after"
+                    else category.position + 1
+                )
+                await role.edit(position=target_pos)
             except discord.HTTPException as e:
                 log.warning(f"Impossible de positionner le rôle correctement: {e}")
                 # On continue car ce n'est pas critique
