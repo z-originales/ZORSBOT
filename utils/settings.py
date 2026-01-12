@@ -31,6 +31,40 @@ class Role(BaseModel):
     id: int
 
 
+class ChannelsStructure(BaseModel):
+    """IDs for structural channels/categories."""
+
+    games_root_category_id: int
+
+
+class RolesStructure(BaseModel):
+    """IDs for structural roles/separators."""
+
+    access_separator_id: int
+    habitue_colors_separator_id: int
+
+
+class DiscordStructure(BaseModel):
+    """Global Discord structure configuration."""
+
+    channels: ChannelsStructure
+    roles: RolesStructure
+
+
+class Placement(BaseModel):
+    """Role placement configuration."""
+
+    anchor_role_id: int
+    where: str = "after"  # "after" (below) or "before" (above)
+
+
+class RolePlacement(BaseModel):
+    """Configurations for different role groups."""
+
+    game_roles: Placement
+    habitue_color_roles: Placement
+
+
 class Roles(BaseModel):
     """Typed roles configuration for type checking and autocomplete."""
 
@@ -58,6 +92,8 @@ class RuntimeSettings(BaseModel):
     logs_path: Path = Path("logs/")
     main_guild: int
     roles: Roles
+    discord_structure: DiscordStructure
+    role_placement: RolePlacement
 
     @field_validator("main_guild")
     @classmethod
