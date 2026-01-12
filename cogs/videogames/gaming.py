@@ -97,7 +97,27 @@ class Gaming(ZorsCog):
         # Création du rôle Discord associé à la catégorie
         game_role = await guild.create_role(name=f"{game}", mentionable=True)
 
+        # Placement du rôle dans la hiérarchie
+        placement = settings.config.role_placement.game_roles
+        anchor_role = guild.get_role(placement.anchor_role_id)
+
+        if anchor_role:
+            target_pos = (
+                anchor_role.position - 1
+                if placement.where == "after"
+                else anchor_role.position + 1
+            )
+            try:
+                await game_role.edit(position=target_pos)
+            except discord.HTTPException as e:
+                log.warning(f"Impossible de positionner le rôle {game_role.name}: {e}")
+        else:
+            log.warning(
+                f"Rôle d'ancrage (ID: {placement.anchor_role_id}) introuvable pour le placement du rôle {game_role.name}."
+            )
+
         # Configuration des permissions de la catégorie
+
         await game_category.set_permissions(
             guild.default_role,  # @everyone
             view_channel=False,  # Invisible par défaut
