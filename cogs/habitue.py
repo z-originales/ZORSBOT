@@ -8,6 +8,7 @@ from loguru import logger as log
 
 from main import ZORS
 from model.managers import HabitueManager
+from utils.positioning import place_with_config
 from utils.settings import settings
 from utils.zors_cog import ZorsCog
 
@@ -307,11 +308,12 @@ class Habitue(ZorsCog):
         if not member_display_name or len(member_display_name.strip()) == 0:
             raise ValueError("Le nom d'affichage du membre ne peut pas être vide")
 
-        # Recherche du rôle de catégorie
+        # Configuration de placement
         placement = settings.config.role_placement.habitue_color_roles
-        category = guild.get_role(placement.anchor_role_id)
-        if category is None:
-            error_msg = f"Rôle de catégorie (ID: {placement.anchor_role_id}) introuvable dans le serveur '{guild.name}'"
+
+        # Vérification que l'ancre existe
+        if guild.get_role(placement.anchor_role_id) is None:
+            error_msg = f"Rôle d'ancrage (ID: {placement.anchor_role_id}) introuvable dans le serveur '{guild.name}'"
             log.error(error_msg)
             raise ValueError(error_msg)
 
@@ -339,16 +341,7 @@ class Habitue(ZorsCog):
             )
 
             # Placement du rôle dans la hiérarchie
-            try:
-                target_pos = (
-                    category.position - 1
-                    if placement.where == "after"
-                    else category.position + 1
-                )
-                await role.edit(position=target_pos)
-            except discord.HTTPException as e:
-                log.warning(f"Impossible de positionner le rôle correctement: {e}")
-                # On continue car ce n'est pas critique
+            await place_with_config(role, guild, placement)
 
             log.debug(f"Rôle de couleur créé avec succès pour {member_display_name}")
             return role

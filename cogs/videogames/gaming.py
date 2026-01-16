@@ -8,6 +8,7 @@ from loguru import logger as log
 from main import ZORS
 from model.managers import GameCategoryManager, PartyManager
 from model.schemas import GameCategory
+from utils.positioning import place_with_config
 from utils.settings import settings
 from utils.zors_cog import ZorsCog
 
@@ -102,22 +103,7 @@ class Gaming(ZorsCog):
 
         # Placement du rôle dans la hiérarchie
         placement = settings.config.role_placement.game_roles
-        anchor_role = guild.get_role(placement.anchor_role_id)
-
-        if anchor_role:
-            target_pos = (
-                anchor_role.position - 1
-                if placement.where == "after"
-                else anchor_role.position + 1
-            )
-            try:
-                await game_role.edit(position=target_pos)
-            except discord.HTTPException as e:
-                log.warning(f"Impossible de positionner le rôle {game_role.name}: {e}")
-        else:
-            log.warning(
-                f"Rôle d'ancrage (ID: {placement.anchor_role_id}) introuvable pour le placement du rôle {game_role.name}."
-            )
+        await place_with_config(game_role, guild, placement)
 
         # Configuration des permissions de la catégorie
 
