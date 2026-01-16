@@ -341,7 +341,11 @@ class Habitue(ZorsCog):
             )
 
             # Placement du rôle dans la hiérarchie
-            await place_with_config(role, guild, placement)
+            placed = await place_with_config(role, guild, placement)
+            if not placed:
+                log.warning(
+                    f"Échec du placement du rôle de couleur '{color_role_name}' pour {member_display_name} ; rôle créé mais position potentiellement incorrecte."
+                )
 
             log.debug(f"Rôle de couleur créé avec succès pour {member_display_name}")
             return role
