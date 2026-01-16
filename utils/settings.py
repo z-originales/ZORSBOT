@@ -55,7 +55,7 @@ class Placement(BaseModel):
     """Role placement configuration."""
 
     anchor_role_id: int
-    where: str = "after"  # "after" (below) or "before" (above)
+    where: Literal["after", "before"] = "after"  # "after" (below) or "before" (above)
 
 
 class RolePlacement(BaseModel):
