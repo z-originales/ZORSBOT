@@ -8,6 +8,7 @@ from loguru import logger as log
 from main import ZORS
 from model.managers import GameCategoryManager, PartyManager
 from model.schemas import GameCategory
+from utils.positioning import place_with_config
 from utils.settings import settings
 from utils.zors_cog import ZorsCog
 
@@ -18,8 +19,6 @@ class Gaming(ZorsCog):
     Permet de créer des catégories de jeux avec des salons dédiés,
     et gère des salons vocaux dynamiques pour les parties.
     """
-
-    category_role = "==RÔLES ACCES=="
 
     def __init__(self, bot: ZORS):
         self.bot = bot
@@ -78,11 +77,15 @@ class Gaming(ZorsCog):
         guild = self.require_guild(ctx)
 
         main_game_category = guild.get_channel(
-            settings.config.discord_structure.channels.games_root_category_id
+            settings.runtime.discord_structure.channels.games_root_category_id
         )
         if main_game_category is None:
-            await ctx.respond("La catégorie principale de jeux n'existe pas.")
-            log.info("La catégorie principale de jeux n'existe pas. Créez-la d'abord.")
+            await ctx.respond(
+                f"La catégorie principale de jeux (ID: {settings.runtime.discord_structure.channels.games_root_category_id}) n'existe pas."
+            )
+            log.info(
+                f"La catégorie principale de jeux (ID: {settings.runtime.discord_structure.channels.games_root_category_id}) n'existe pas. Vérifiez la config."
+            )
             return
 
         # Création de la structure du jeu
@@ -90,6 +93,7 @@ class Gaming(ZorsCog):
         game_category = await guild.create_category(
             "> " + game, position=main_game_category_position + 1
         )
+
         game_forum = await game_category.create_forum_channel("Forum")
         game_text = await game_category.create_text_channel("Chat")
         game_voice = await game_category.create_voice_channel("➕Add Party")
@@ -97,7 +101,17 @@ class Gaming(ZorsCog):
         # Création du rôle Discord associé à la catégorie
         game_role = await guild.create_role(name=f"{game}", mentionable=True)
 
+        # Placement du rôle dans la hiérarchie
+        placement = settings.runtime.role_placement.game_roles
+        placed = await place_with_config(game_role, guild, placement)
+        if not placed:
+            log.warning(
+                f"Échec du placement du rôle '{game_role.name}' (ID: {game_role.id}) "
+                f"dans le serveur '{guild.name}' (ID: {guild.id}) avec la configuration: {placement}"
+            )
+
         # Configuration des permissions de la catégorie
+
         await game_category.set_permissions(
             guild.default_role,  # @everyone
             view_channel=False,  # Invisible par défaut
