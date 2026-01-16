@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from utils.settings import Placement
 
 # Type alias for Discord positionable objects
-PositionableType = (
+type PositionableType = (
     discord.Role
     | discord.TextChannel
     | discord.VoiceChannel
