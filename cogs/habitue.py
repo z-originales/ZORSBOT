@@ -309,7 +309,7 @@ class Habitue(ZorsCog):
             raise ValueError("Le nom d'affichage du membre ne peut pas être vide")
 
         # Configuration de placement
-        placement = settings.config.role_placement.habitue_color_roles
+        placement = settings.runtime.role_placement.habitue_color_roles
 
         # Vérification que l'ancre existe
         if guild.get_role(placement.anchor_id) is None:

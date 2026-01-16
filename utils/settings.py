@@ -52,7 +52,7 @@ class DiscordStructure(BaseModel):
 
 
 class Placement(BaseModel):
-    """Configuration de placement relatif à une ancre (rôle ou channel)."""
+    """Configuration for placement relative to an anchor (role or channel)."""
 
     anchor_id: int
     anchor_type: Literal["role", "channel"] = "role"

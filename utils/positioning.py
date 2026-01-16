@@ -1,4 +1,4 @@
-"""Utilitaires pour le positionnement des objets Discord (rôles, channels)."""
+"""Utilities for positioning Discord objects (roles, channels)."""
 
 from __future__ import annotations
 
