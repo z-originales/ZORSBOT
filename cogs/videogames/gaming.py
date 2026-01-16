@@ -103,7 +103,12 @@ class Gaming(ZorsCog):
 
         # Placement du rôle dans la hiérarchie
         placement = settings.runtime.role_placement.game_roles
-        await place_with_config(game_role, guild, placement)
+        placed = await place_with_config(game_role, guild, placement)
+        if not placed:
+            log.warning(
+                f"Échec du placement du rôle '{game_role.name}' (ID: {game_role.id}) "
+                f"dans le serveur '{guild.name}' (ID: {guild.id}) avec la configuration: {placement}"
+            )
 
         # Configuration des permissions de la catégorie
 
