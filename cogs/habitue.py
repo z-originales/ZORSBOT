@@ -312,8 +312,8 @@ class Habitue(ZorsCog):
         placement = settings.config.role_placement.habitue_color_roles
 
         # Vérification que l'ancre existe
-        if guild.get_role(placement.anchor_role_id) is None:
-            error_msg = f"Rôle d'ancrage (ID: {placement.anchor_role_id}) introuvable dans le serveur '{guild.name}'"
+        if guild.get_role(placement.anchor_id) is None:
+            error_msg = f"Rôle d'ancrage (ID: {placement.anchor_id}) introuvable dans le serveur '{guild.name}'"
             log.error(error_msg)
             raise ValueError(error_msg)
 

@@ -34,9 +34,11 @@ discord_structure:
 # Placement configuration for automatic roles
 role_placement:
   game_roles:
-    anchor_role_id: 0
+    anchor_id: 0
+    anchor_type: role
     where: after
   habitue_color_roles:
-    anchor_role_id: 0
+    anchor_id: 0
+    anchor_type: role
     where: after
 
