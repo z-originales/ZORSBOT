@@ -77,16 +77,22 @@ async def place_with_config(
     Args:
         item: L'objet à positionner (Role, TextChannel, etc.)
         guild: Le serveur Discord
-        placement: Configuration avec anchor_role_id et where
+        placement: Configuration avec anchor_id, anchor_type et where
 
     Returns:
         True si le placement a réussi, False sinon
     """
-    anchor = guild.get_role(placement.anchor_role_id)
-    if anchor is None:
+    anchor: HasPosition | None = None
+
+    if placement.anchor_type == "role":
+        anchor = guild.get_role(placement.anchor_id)
+    else:
+        anchor = guild.get_channel(placement.anchor_id)
+
+    if anchor is None or not isinstance(anchor, HasPosition):
         log.warning(
-            f"Rôle d'ancrage (ID: {placement.anchor_role_id}) introuvable "
-            f"pour le placement de '{item.name}'"
+            f"{placement.anchor_type.capitalize()} d'ancrage (ID: {placement.anchor_id}) "
+            f"introuvable pour le placement de '{item.name}'"
         )
         return False
 
