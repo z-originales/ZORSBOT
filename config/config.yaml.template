@@ -22,3 +22,23 @@ roles:
   # Set the Discord role ID for gamer
   gamer:
     id: 0
+
+# IDs for structural channels and categories
+discord_structure:
+  channels:
+    games_root_category_id: 0
+  roles:
+    access_separator_id: 0
+    habitue_colors_separator_id: 0
+
+# Placement configuration for automatic roles
+role_placement:
+  game_roles:
+    anchor_id: 0
+    anchor_type: role
+    where: after
+  habitue_color_roles:
+    anchor_id: 0
+    anchor_type: role
+    where: after
+

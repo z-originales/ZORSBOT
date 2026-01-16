@@ -8,6 +8,7 @@ from loguru import logger as log
 
 from main import ZORS
 from model.managers import HabitueManager
+from utils.positioning import place_with_config
 from utils.settings import settings
 from utils.zors_cog import ZorsCog
 
@@ -30,7 +31,6 @@ default_colors = {
 
 
 class Habitue(ZorsCog):
-    category_role = "==COULEURS HABITUÉS=="
     habitue_colorname_template = "couleur {username}"
     _processed_habitue: Member | None = (
         None  # TODO turn it into a set to handle multiple members being processed at the same time
@@ -308,14 +308,17 @@ class Habitue(ZorsCog):
         if not member_display_name or len(member_display_name.strip()) == 0:
             raise ValueError("Le nom d'affichage du membre ne peut pas être vide")
 
-        # Recherche du rôle de catégorie
-        category: Role | None = discord.utils.get(guild.roles, name=self.category_role)
-        if category is None:
-            error_msg = f"Rôle de catégorie '{self.category_role}' introuvable dans le serveur '{guild.name}'"
+        # Configuration de placement
+        placement = settings.runtime.role_placement.habitue_color_roles
+
+        # Vérification que l'ancre existe
+        if guild.get_role(placement.anchor_id) is None:
+            error_msg = f"Rôle d'ancrage (ID: {placement.anchor_id}) introuvable dans le serveur '{guild.name}'"
             log.error(error_msg)
             raise ValueError(error_msg)
 
         # Définition du nom du rôle de couleur
+
         color_role_name = self.habitue_colorname_template.format(
             username=member_display_name
         )
@@ -338,11 +341,11 @@ class Habitue(ZorsCog):
             )
 
             # Placement du rôle dans la hiérarchie
-            try:
-                await role.edit(position=category.position)
-            except discord.HTTPException as e:
-                log.warning(f"Impossible de positionner le rôle correctement: {e}")
-                # On continue car ce n'est pas critique
+            placed = await place_with_config(role, guild, placement)
+            if not placed:
+                log.warning(
+                    f"Échec du placement du rôle de couleur '{color_role_name}' pour {member_display_name} ; rôle créé mais position potentiellement incorrecte."
+                )
 
             log.debug(f"Rôle de couleur créé avec succès pour {member_display_name}")
             return role
