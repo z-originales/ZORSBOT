@@ -77,14 +77,14 @@ class Gaming(ZorsCog):
         guild = self.require_guild(ctx)
 
         main_game_category = guild.get_channel(
-            settings.config.discord_structure.channels.games_root_category_id
+            settings.runtime.discord_structure.channels.games_root_category_id
         )
         if main_game_category is None:
             await ctx.respond(
-                f"La catégorie principale de jeux (ID: {settings.config.discord_structure.channels.games_root_category_id}) n'existe pas."
+                f"La catégorie principale de jeux (ID: {settings.runtime.discord_structure.channels.games_root_category_id}) n'existe pas."
             )
             log.info(
-                f"La catégorie principale de jeux (ID: {settings.config.discord_structure.channels.games_root_category_id}) n'existe pas. Vérifiez la config."
+                f"La catégorie principale de jeux (ID: {settings.runtime.discord_structure.channels.games_root_category_id}) n'existe pas. Vérifiez la config."
             )
             return
 
@@ -102,7 +102,7 @@ class Gaming(ZorsCog):
         game_role = await guild.create_role(name=f"{game}", mentionable=True)
 
         # Placement du rôle dans la hiérarchie
-        placement = settings.config.role_placement.game_roles
+        placement = settings.runtime.role_placement.game_roles
         await place_with_config(game_role, guild, placement)
 
         # Configuration des permissions de la catégorie
