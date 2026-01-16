@@ -10,7 +10,7 @@ from loguru import logger as log
 if TYPE_CHECKING:
     from utils.settings import Placement
 
-# Type alias pour les objets Discord positionnables
+# Type alias for Discord positionable objects
 PositionableType = (
     discord.Role
     | discord.TextChannel
@@ -23,7 +23,7 @@ PositionableType = (
 
 @runtime_checkable
 class HasPosition(Protocol):
-    """Protocol pour les objets Discord avec une position lisible."""
+    """Protocol for Discord objects with a readable position."""
 
     @property
     def position(self) -> int: ...
@@ -37,22 +37,23 @@ async def place_relative(
     where: Literal["before", "after"] = "after",
 ) -> bool:
     """
-    Place un item relativement à un ancre dans la hiérarchie Discord.
+    Places an item relative to an anchor in the Discord hierarchy.
 
-    Note sur les positions Discord:
-    - Position plus haute = nombre plus grand (ex: admin à position 50)
-    - Position plus basse = nombre plus petit (ex: @everyone à position 0)
-    - "before" = au-dessus de l'ancre (position + 1)
-    - "after" = en-dessous de l'ancre (position - 1)
+    Note on Discord positions:
+    - Higher position = larger number (e.g., admin at position 50)
+    - Lower position = smaller number (e.g., @everyone at position 0)
+    - “before” = above the anchor (position + 1)
+    - “after” = below the anchor (position - 1)
 
     Args:
-        item: L'objet à positionner (Role, TextChannel, VoiceChannel, etc.)
-        anchor: L'objet de référence pour le placement
-        where: "before" (au-dessus) ou "after" (en-dessous) de l'ancre
+    item: The object to be positioned (Role, TextChannel, VoiceChannel, etc.)
+    anchor: The reference object for placement
+        where: “before” (above) or “after” (below) the anchor
 
     Returns:
-        True si le placement a réussi, False sinon
+    True if placement was successful, False otherwise
     """
+
     target_pos = anchor.position + 1 if where == "before" else anchor.position - 1
 
     try:
@@ -72,15 +73,15 @@ async def place_with_config(
     placement: Placement,
 ) -> bool:
     """
-    Place un item selon une configuration Placement.
+    Places an item according to a Placement configuration.
 
     Args:
-        item: L'objet à positionner (Role, TextChannel, etc.)
-        guild: Le serveur Discord
-        placement: Configuration avec anchor_id, anchor_type et where
+        item: The object to be positioned (Role, TextChannel, etc.)
+        guild: The Discord server
+        placement: Configuration with anchor_id, anchor_type, and where
 
     Returns:
-        True si le placement a réussi, False sinon
+        True if the placement was successful, False otherwise
     """
     anchor: HasPosition | None = None
 
