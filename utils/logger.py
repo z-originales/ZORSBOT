@@ -30,6 +30,7 @@ def setup_basic_logger() -> None:
         level="DEBUG",
         colorize=True,
         filter=lambda record: record["level"].no < logger.level("WARNING").no,
+        enqueue=True,
     )
 
     # Add basic console handler for issues (WARNING and above)
@@ -38,6 +39,7 @@ def setup_basic_logger() -> None:
         format=_issue_format,
         level="WARNING",
         colorize=True,
+        enqueue=True,
     )
 
     set_colors()
@@ -95,11 +97,12 @@ def add_event_console(log_level: str, issue_level: str) -> None:
         level=log_level,
         colorize=True,
         filter=lambda record: record["level"].no < logger.level(issue_level).no,
+        enqueue=True,
     )
 
 
 def add_issue_console(log_level: str) -> None:
-    logger.add(stderr, format=_issue_format, level=log_level, colorize=True)
+    logger.add(stderr, format=_issue_format, level=log_level, colorize=True, enqueue=True)
 
 
 def add_event_log_file(log_level: str, issue_level: str, log_folder_path: Path) -> None:
@@ -111,6 +114,7 @@ def add_event_log_file(log_level: str, issue_level: str, log_folder_path: Path) 
         level=log_level,
         filter=lambda record: record["level"].no < logger.level(issue_level).no,
         compression=_compression_type,
+        enqueue=True,
     )
 
 
@@ -122,6 +126,7 @@ def add_issue_log_file(log_level: str, log_folder_path: Path) -> None:
         retention=_retention_duration,
         level=log_level,
         compression=_compression_type,
+        enqueue=True,
     )
 
 
